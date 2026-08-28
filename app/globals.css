@@ -323,3 +323,18 @@ body { background: radial-gradient(circle at 15% 0%, #eef8f1 0, transparent 34%)
 .nav-item { font-weight: 600; }
 .nav-item.active { box-shadow: inset 0 0 0 1px #c5e2ce; }
 .toast { background: #326f51; box-shadow: 0 10px 25px rgba(38,74,55,.23); }
+
+/* Focused assistant home and accessible interaction polish */
+.ai-hero { position: relative; padding: 30px; border: 1px solid rgba(202,220,207,.9); border-radius: 28px; background: linear-gradient(145deg, rgba(241,250,244,.96), rgba(255,255,255,.94) 68%); box-shadow: var(--shadow); overflow: hidden; }
+.ai-hero::after { content: ""; position: absolute; width: 210px; height: 210px; right: -80px; top: -100px; border-radius: 50%; background: rgba(223,241,231,.68); pointer-events: none; }
+.ai-hero > * { position: relative; z-index: 1; }
+.ai-hero .title { max-width: 560px; margin-top: 9px; }
+.quick-questions { margin-top: 22px; }
+.quick-questions .section-title { align-items: baseline; }
+.quick-question-grid button { min-height: 42px; }
+.bottom-nav { padding: 8px; }
+.nav-item { min-height: 42px; }
+:focus-visible { outline: 3px solid rgba(63,128,101,.35); outline-offset: 2px; }
+button:disabled { cursor: not-allowed; }
+@media (max-width: 720px) { .ai-hero { padding: 23px 19px; border-radius: 23px; } }
+@media (max-width: 420px) { .ai-input-row { align-items: stretch; } .ai-send { flex-basis: 58px; } }
