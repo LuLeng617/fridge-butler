@@ -213,3 +213,21 @@ button { cursor: pointer; }
 .check-btn { flex: 0 0 30px; width: 30px; height: 30px; border: 1px solid #cbdacf; border-radius: 50%; background: white; color: var(--green); font-size: 17px; }
 .toast { position: fixed; z-index: 10; right: 16px; bottom: 94px; left: 16px; padding: 13px 16px; border-radius: 13px; background: #376d52; color: white; box-shadow: 0 8px 22px rgba(31,73,49,.2); text-align: center; font-weight: 700; }
 @media (max-width: 480px) { .recent-foods { grid-template-columns: 1fr; } .stock { grid-template-columns: 1fr; } .stock-actions { justify-content: flex-end; } .recipe-card { display: block; } .recipe-card .recipe-emoji { margin-bottom: 5px; } .section-title { align-items: flex-start; gap: 8px; } .section-title .actions { flex-wrap: wrap; justify-content: flex-end; } }
+
+.qty-line { display: flex; align-items: center; justify-content: space-between; margin-top: 12px; }
+.qty-line .label { margin: 0; }
+.fridge-visual { padding-top: 34px; }
+.fridge-shelf { position: relative; grid-template-columns: repeat(3, 1fr); margin-top: 12px; padding: 30px 9px 12px; }
+.fridge-category { position: absolute; top: 8px; left: 10px; color: #56826a; font-size: 11px; font-weight: 800; }
+.fridge-food { width: 100%; min-width: 0; padding: 5px; cursor: pointer; }
+.fridge-food small { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.shopping-shelf { display: grid; grid-template-columns: repeat(2, 1fr); gap: 9px; }
+.shopping-tile { display: flex; min-height: 86px; flex-direction: column; align-items: flex-start; justify-content: center; gap: 4px; padding: 12px; border: 1px solid #dfe9e1; border-radius: 14px; background: #fbfefb; color: #496456; text-align: left; cursor: pointer; }
+.shopping-tile > span { color: var(--green); font-size: 18px; }
+.shopping-tile strong, .shopping-tile small { display: block; }
+.shopping-tile small { color: var(--muted); font-size: 10px; }
+.shopping-tile.active { border-color: var(--green); background: var(--mint); box-shadow: 0 0 0 2px #c9e5d3; }
+.shopping-tile.completed { opacity: .52; background: #f1f4f1; }
+.shopping-tile.completed strong { text-decoration: line-through; }
+.shopping-editor { margin-top: 14px; }
+@media (max-width: 420px) { .fridge-shelf { grid-template-columns: repeat(2, 1fr); } .shopping-shelf { grid-template-columns: 1fr 1fr; } }
