@@ -240,6 +240,8 @@ button { cursor: pointer; }
 .ai-message { display: flex; align-items: flex-start; gap: 9px; max-width: 92%; padding: 13px 15px; border-radius: 16px; line-height: 1.55; }
 .ai-message p { margin: 4px 0 0; color: var(--muted); font-size: 13px; }
 .ai-message.user { margin-left: auto; background: #e4f2e9; color: #356b53; }
+.chat-entry { display: grid; gap: 7px; }
+.chat-entry.user .ai-message { margin-left: auto; }
 .ai-message.assistant { background: white; border: 1px solid #e2ebe4; }
 .ai-avatar { display: grid; place-items: center; flex: 0 0 26px; width: 26px; height: 26px; border-radius: 50%; background: var(--mint); color: var(--green); font-size: 11px; font-weight: 800; }
 .ai-result { padding: 17px; border: 1px solid #cfe3d4; border-radius: 17px; background: white; box-shadow: 0 8px 24px rgba(62,108,78,.08); }
@@ -267,4 +269,12 @@ button { cursor: pointer; }
 .mini-recipe-grid button { display: grid; gap: 4px; padding: 12px 8px; border: 1px solid #e1eae2; border-radius: 13px; background: #fbfefb; color: #486554; text-align: left; }
 .mini-recipe-grid span { font-size: 25px; }
 .mini-recipe-grid small { color: var(--muted); font-size: 10px; }
+.cooking-panel { padding: 23px; }
+.cooking-count { margin: 13px 0; color: var(--green); font-weight: 800; }
+.cooking-step { margin: 18px 0; padding: 18px; border-radius: 15px; background: #f4faf5; }
+.cooking-step h2 { margin: 0 0 10px; font-size: 20px; }
+.cooking-step p { margin: 0; line-height: 1.7; }
+.cooking-tip { margin-top: 15px; padding: 11px; border-radius: 10px; background: #fff7e8; color: #9b6c29; font-size: 12px; }
+.confirm-card { display: grid; gap: 10px; margin-top: 18px; padding: 15px; border: 1px solid #cfe3d4; border-radius: 14px; }
+.confirm-card p { margin: 0; color: var(--muted); font-size: 12px; line-height: 1.6; }
 @media (max-width: 520px) { .mini-recipe-grid { grid-template-columns: 1fr; } .mini-recipe-grid button { grid-template-columns: auto 1fr auto; align-items: center; } }
