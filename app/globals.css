@@ -69,6 +69,11 @@ button { cursor: pointer; }
 .ingredient-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-bottom: 16px; }
 .ingredient-btn { border: 1px solid #e0e9e1; border-radius: 10px; padding: 10px 7px; background: white; color: #536d5e; font-size: 13px; }
 .ingredient-btn:hover { border-color: #8fb9a0; background: #f0f8f2; }
+.ingredient-btn.chosen { border-color: var(--green); background: #e4f2e9; color: #356b53; font-weight: 800; }
+.free-btn { border-style: dashed; color: var(--green); }
+.selected-note { margin: 2px 0 8px; color: #416d54; font-size: 12px; font-weight: 700; }
+.selected-note.muted { color: var(--muted); font-weight: 400; }
+.confirm-btn:disabled { cursor: not-allowed; opacity: .45; }
 .quantity-picker { display: flex; align-items: center; justify-content: space-between; height: 46px; border: 1px solid #dce5df; border-radius: 12px; background: #fbfcfa; }
 .quantity-picker button { width: 40px; height: 100%; border: 0; background: transparent; color: var(--green); font-size: 22px; }
 .quantity-picker strong { font-size: 16px; }
