@@ -56,6 +56,10 @@ button { cursor: pointer; }
 .section-title { display: flex; align-items: center; justify-content: space-between; margin-bottom: 22px; }
 .section-title h2 { margin: 0; font-size: 20px; }
 .label { display: block; margin: 16px 0 7px; font-size: 13px; font-weight: 700; }
+.quick-label { margin: -8px 0 10px; color: var(--muted); font-size: 12px; }
+.preset-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 13px; }
+.preset { display: flex; align-items: center; justify-content: center; gap: 4px; border: 1px solid #e0e9e1; border-radius: 10px; padding: 8px 4px; background: #fbfdfb; color: #557365; font-size: 12px; }
+.preset:hover { border-color: #a8cbb5; background: #eaf6ee; }
 .input { width: 100%; border: 1px solid #dce5df; border-radius: 12px; padding: 12px 13px; outline: none; background: #fbfcfa; color: var(--ink); }
 .input:focus { border-color: var(--green); box-shadow: 0 0 0 3px #dcefe6; }
 .row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
