@@ -6,7 +6,7 @@ type Recipe={id:string;name:string;emoji:string;minutes:number;ingredients:Ingre
 type HistoryItem={role?:string;text?:string;reply?:{recipeId?:string|null;recipeName?:string|null}};
 const days=(d?:string)=>d?Math.ceil((new Date(d+"T23:59:59").getTime()-Date.now())/86400000):99;
 
-export async function POST(request:Request){
+async function fallback(request:Request){
   const body=await request.json() as {message?:string;foods?:Food[];recipes?:Recipe[];history?:HistoryItem[]};
   const message=(body.message||"").trim(), foods=(body.foods||[]).filter(f=>!f.done), recipes=body.recipes||[], history=body.history||[];
   const text=message.toLowerCase(), previous=history.map(x=>x.reply?.recipeId).filter(Boolean) as string[];
@@ -32,4 +32,58 @@ export async function POST(request:Request){
   const expiry=best.expiring.sort((a,b)=>days(foods.find(f=>f.name===a.name)?.expiry)-days(foods.find(f=>f.name===b.name)?.expiry))[0], reason=expiry?[expiry.name+" "+(days(foods.find(f=>f.name===expiry.name)?.expiry)===0?"今天到期":"剩 "+days(foods.find(f=>f.name===expiry.name)?.expiry)+" 天，適合優先用掉")]:[best.available.length+" 項食材已經在冰箱裡"];
   if(tired)reason.push("步驟簡單，適合今天不想忙太久");if(noBuy&&best.missing.length)reason.push("可以先省略缺少食材，做成簡易版");if(limit<99)reason.push("料理時間約 "+best.recipe.minutes+" 分鐘");
   return NextResponse.json({message:noBuy&&best.missing.length?"如果不想出門，可以先做簡易版 "+best.recipe.name+"，缺少的食材先省略。":"可以，"+best.recipe.name+"很適合你現在的需求。",recipeId:best.recipe.id,recipeName:best.recipe.name,emoji:best.recipe.emoji,reason,availableIngredients:best.available.map(i=>i.name),missingIngredients:best.missing.map(i=>i.name),cookTime:best.recipe.minutes,difficulty:1,actions:best.missing.length?["start","detail","shopping","another"]:["start","detail","another"]});
+}
+
+const replySchema={
+  type:"object",
+  additionalProperties:false,
+  properties:{
+    message:{type:"string"},
+    recipeId:{type:["string","null"]},
+    recipeName:{type:["string","null"]},
+    emoji:{type:"string"},
+    reason:{type:"array",items:{type:"string"}},
+    availableIngredients:{type:"array",items:{type:"string"}},
+    missingIngredients:{type:"array",items:{type:"string"}},
+    cookTime:{type:["number","null"]},
+    difficulty:{type:"number"},
+    actions:{type:"array",items:{type:"string"}}
+  },
+  required:["message","recipeId","recipeName","emoji","reason","availableIngredients","missingIngredients","cookTime","difficulty","actions"]
+};
+
+export async function POST(request:Request){
+  const raw=await request.clone().json() as {message?:string;foods?:Food[];recipes?:Recipe[];history?:HistoryItem[]};
+  if(!process.env.OPENAI_API_KEY)return fallback(request);
+  try{
+    const foods=(raw.foods||[]).filter(f=>!f.done).slice(0,100);
+    const recipes=(raw.recipes||[]).slice(0,100);
+    const history=(raw.history||[]).slice(-8).map(x=>({role:x.role==="assistant"?"assistant":"user",content:x.text||""}));
+    const system=`你是「冰箱管家」，用繁體中文回答，語氣像貼心、實用的料理助手。
+你只能根據提供的冰箱食材與食譜資料推薦，不要虛構庫存。若缺少食材，清楚列出缺少項目。
+理解使用者的多輪對話，例如「換一個」、「那不要蛋」、「剛剛那道改兩人份」。
+若使用者只是閒聊，仍要自然回到料理、冰箱或購物清單相關協助。
+recipeId 必須是提供的食譜 id，沒有合適食譜時填 null。actions 只能使用 ask、start、detail、shopping、another。
+回覆要短而有用；reason 最多 3 項。`;
+    const payload={
+      model:process.env.OPENAI_MODEL||"gpt-5-mini",
+      store:false,
+      input:[
+        {role:"system",content:[{type:"input_text",text:system}]},
+        ...history.map(x=>({role:x.role,content:[{type:"input_text",text:x.content}]})),
+        {role:"user",content:[{type:"input_text",text:`目前冰箱：${JSON.stringify(foods)}\n可用食譜：${JSON.stringify(recipes)}\n本次問題：${String(raw.message||"")}`}]}
+      ],
+      text:{format:{type:"json_schema",name:"fridge_reply",strict:true,schema:replySchema}}
+    };
+    const response=await fetch("https://api.openai.com/v1/responses",{method:"POST",headers:{"Content-Type":"application/json",Authorization:`Bearer ${process.env.OPENAI_API_KEY}`},body:JSON.stringify(payload),signal:AbortSignal.timeout(15000)});
+    if(!response.ok)throw new Error("OpenAI request failed");
+    const data=await response.json() as {output_text?:string};
+    const parsed=JSON.parse(data.output_text||"");
+    const recipe=recipes.find(r=>r.id===parsed.recipeId);
+    if(parsed.recipeId&&!recipe)throw new Error("Invalid recipe id");
+    return NextResponse.json({...parsed,recipeId:recipe?.id||null,recipeName:recipe?.name||null,emoji:recipe?.emoji||parsed.emoji||"🍽️",cookTime:recipe?.minutes??parsed.cookTime??null,difficulty:Math.min(3,Math.max(1,Number(parsed.difficulty)||1))});
+  }catch(error){
+    console.error("AI assistant fallback:",error);
+    return fallback(request);
+  }
 }
