@@ -13,6 +13,8 @@ export async function POST(request:Request){
   const timeMatch=text.match(/(\d+)\s*分鐘/), limit=timeMatch?Number(timeMatch[1]):99;
   const avoidEgg=/不吃蛋|不要蛋|不想吃蛋/.test(text), avoidMeat=/不吃肉|不要肉|素食/.test(text), tired=/好累|不想洗|少洗|簡單|懶得/.test(text), noBuy=/不出門|不想買|不要買|不想出去/.test(text), clear=/清冰箱|快過期|即期/.test(text);
   const wantsNoodle=/麵|麵食/.test(text), wantsSoup=/湯|喝的/.test(text), wantsRice=/飯|米飯/.test(text), wantsSpicy=/辣|酸辣/.test(text);
+  const knownIntent=/吃|喝|料理|食譜|煮|做|冰箱|食材|分鐘|推薦|清冰箱|辣|酸|甜|鹹|麵|湯|飯|早餐|午餐|晚餐|不吃|不要|不想|好累|出門|買/.test(text)||recipes.some(r=>text.includes(r.name)||r.ingredients.some(i=>text.includes(i.name)));
+  if(!knownIntent)return NextResponse.json({message:"我目前主要幫你處理料理、冰箱食材和購物清單。你可以試著告訴我想吃什麼、剩下幾分鐘，或說「幫我決定今天吃什麼」。",recipeId:null,recipeName:null,reason:[],availableIngredients:[],missingIngredients:[],cookTime:null,difficulty:1,actions:["ask"]});
   const isAnother=/換一個|另一個|別的推薦|不要這個/.test(text);
   const scored=recipes.map(recipe=>{
     const available=recipe.ingredients.filter(i=>foods.some(f=>f.name===i.name&&f.quantity>=i.quantity)), missing=recipe.ingredients.filter(i=>!foods.some(f=>f.name===i.name&&f.quantity>=i.quantity)), expiring=recipe.ingredients.filter(i=>foods.some(f=>f.name===i.name&&days(f.expiry)<=3));
@@ -21,7 +23,7 @@ export async function POST(request:Request){
     if(recipe.minutes<=limit)score+=20;else if(limit<99)score-=40;
     if(tired&&recipe.minutes<=20)score+=25;if(noBuy)score-=missing.length*20;if(clear)score+=expiring.length*28;
     if(wantsNoodle&&recipe.name.includes("麵"))score+=38;if(wantsSoup&&recipe.name.includes("湯"))score+=38;if(wantsRice&&recipe.name.includes("飯"))score+=38;
-    if(wantsSpicy&&/咖哩|辣/.test(recipe.name+recipe.note))score+=20;if(text.includes("酸辣湯")&&recipe.name.includes("湯"))score+=45;if(text.includes("番茄")&&recipe.ingredients.some(i=>i.name==="番茄"))score+=24;
+    if(wantsSpicy&&/咖哩|辣/.test(recipe.name+recipe.note))score+=130;if(text.includes("酸辣湯")&&recipe.name.includes("湯"))score+=45;if(text.includes("番茄")&&recipe.ingredients.some(i=>i.name==="番茄"))score+=24;
     if(avoidEgg&&recipe.ingredients.some(i=>i.name==="雞蛋"))score-=120;if(avoidMeat&&recipe.ingredients.some(i=>/肉|香腸/.test(i.name)))score-=120;
     return{recipe,available,missing,expiring,score};
   }).sort((a,b)=>b.score-a.score);
