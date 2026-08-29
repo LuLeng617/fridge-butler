@@ -332,6 +332,13 @@ body { background: radial-gradient(circle at 15% 0%, #eef8f1 0, transparent 34%)
 .shopping-tile.active { box-shadow: 0 0 0 2px #b8dcc4, 0 7px 16px rgba(63,128,101,.1); }
 .recipe-card, .ai-result { box-shadow: 0 9px 22px rgba(38,74,55,.06); }
 .recipe-card .recipe-emoji { background: linear-gradient(145deg, #edf8f0, #fff9ec); }
+.flavor-strip { display: flex; gap: 9px; overflow-x: auto; padding: 2px 2px 8px; scrollbar-width: thin; }
+.flavor-choice { flex: 0 0 auto; min-width: 78px; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 9px 12px; border: 1px solid #dfe9e1; border-radius: 15px; background: #fff; color: #496456; cursor: pointer; }
+.flavor-choice span { font-size: 24px; line-height: 1; }
+.flavor-choice small { font-size: 11px; white-space: nowrap; }
+.flavor-choice.active { border-color: var(--green); background: var(--mint); box-shadow: 0 0 0 2px #c5e2ce; }
+.ready-filter-row { margin-top: 12px; padding-top: 12px; border-top: 1px solid #edf2ed; }
+.ready-filter { display: inline-flex; align-items: center; gap: 5px; }
 .ai-hero { padding-top: 8px; }
 .ai-message { box-shadow: 0 5px 14px rgba(38,74,55,.04); }
 .ai-result { border-color: #c5dfcc; }
