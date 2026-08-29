@@ -11,6 +11,12 @@ npm run dev
 
 開啟 `http://localhost:3000`。
 
+## 開啟 AI 對話
+
+首頁的料理助手支援多輪開放式問答。複製 `.env.example` 為 `.env.local`，填入 `OPENAI_API_KEY` 後重新啟動 Next.js；未設定金鑰時會自動使用內建推薦邏輯，不影響基本功能。
+
+部署到 Vercel 時，請在 Project Settings → Environment Variables 設定 `OPENAI_API_KEY`。API 金鑰只會在伺服器端使用，不要放入 `NEXT_PUBLIC_` 變數。
+
 目前支援：
 
 - 新增食材、數量、單位、分類與保存期限

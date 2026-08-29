@@ -1,94 +1,1533 @@
 "use client";
 import { useEffect, useState } from "react";
-type View="home"|"fridge"|"recipes"|"shopping";
-type Food={id:string;name:string;quantity:number;unit:string;expiry:string;category:string;done:boolean;addedAt?:number};
-type Shop={id:string;name:string;quantity:number;unit:string;category:string;source:string;done:boolean};
-type Recipe={id:string;name:string;emoji:string;flavor:string;minutes:number;ingredients:{name:string;quantity:number;unit:string}[];note:string;steps:string[];url:string};
-const FK="fridge-butler-foods",SK="fridge-butler-shopping";
-const units=["份","顆","把","包","瓶","克","公斤","片"] as const;
-const groups=[["蔬菜","🥬",["番茄","青菜","高麗菜","小黃瓜","洋蔥","青蔥","紅蘿蔔"]],["蛋奶","🥚",["雞蛋","牛奶","起司","優格"]],["肉類","🍖",["雞胸肉","豬肉","牛肉","香腸"]],["水果","🍎",["香蕉","蘋果","橘子","葡萄"]],["主食","🍚",["白飯","吐司","麵條","燕麥"]],["其他","📦",["醬油","鹽","胡椒","奶油","咖哩塊"]]] as const;
-const recipes:Recipe[]=[
-{id:"tomato",name:"番茄炒蛋",emoji:"🍅",flavor:"台式家常",minutes:15,ingredients:[{name:"雞蛋",quantity:2,unit:"顆"},{name:"番茄",quantity:2,unit:"顆"},{name:"青蔥",quantity:1,unit:"把"}],note:"優先消耗快到期番茄",steps:["番茄切塊，雞蛋打散。","蛋炒至半熟盛起。","炒番茄後加入蛋與青蔥。"],url:"https://www.google.com/search?q=番茄炒蛋食譜"},
-{id:"rice",name:"蛋炒飯",emoji:"🍚",flavor:"台式家常",minutes:20,ingredients:[{name:"雞蛋",quantity:2,unit:"顆"},{name:"白飯",quantity:2,unit:"份"},{name:"青蔥",quantity:1,unit:"把"}],note:"隔夜飯的好朋友",steps:["雞蛋打散，青蔥切末。","熱鍋炒蛋與白飯。","加入青蔥調味。"],url:"https://www.google.com/search?q=蛋炒飯食譜"},
-{id:"toast",name:"起司蛋吐司",emoji:"🥪",flavor:"西式輕食",minutes:8,ingredients:[{name:"雞蛋",quantity:1,unit:"顆"},{name:"吐司",quantity:2,unit:"片"},{name:"起司",quantity:1,unit:"片"}],note:"早餐快速完成",steps:["雞蛋煎熟。","吐司放起司與煎蛋。","對切享用。"],url:"https://www.google.com/search?q=起司蛋吐司食譜"},
-{id:"soup",name:"番茄蛋花湯",emoji:"🍲",flavor:"清爽湯品",minutes:18,ingredients:[{name:"番茄",quantity:2,unit:"顆"},{name:"雞蛋",quantity:1,unit:"顆"}],note:"清爽暖胃",steps:["番茄煮出香氣。","加水與調味料煮滾。","倒蛋液成蛋花。"],url:"https://www.google.com/search?q=番茄蛋花湯食譜"},
-{id:"noodle",name:"蔬菜拌麵",emoji:"🍜",flavor:"麵食料理",minutes:15,ingredients:[{name:"麵條",quantity:1,unit:"份"},{name:"青菜",quantity:1,unit:"把"},{name:"雞蛋",quantity:1,unit:"顆"}],note:"消耗剩餘青菜",steps:["麵條與青菜燙熟。","雞蛋煎熟切絲。","拌入醬油與香油。"],url:"https://www.google.com/search?q=蔬菜拌麵食譜"},
-{id:"curry",name:"簡易咖哩飯",emoji:"🍛",flavor:"日式風味",minutes:35,ingredients:[{name:"雞胸肉",quantity:1,unit:"包"},{name:"洋蔥",quantity:1,unit:"顆"},{name:"咖哩塊",quantity:1,unit:"盒"},{name:"白飯",quantity:2,unit:"份"}],note:"一次煮好幾餐",steps:["肉與洋蔥切塊。","炒香後加水煮軟。","放咖哩塊淋白飯。"],url:"https://www.google.com/search?q=簡易咖哩飯食譜"},
-{id:"omelet",name:"蔬菜歐姆蛋",emoji:"🍳",flavor:"西式輕食",minutes:12,ingredients:[{name:"雞蛋",quantity:2,unit:"顆"},{name:"青菜",quantity:1,unit:"份"},{name:"起司",quantity:1,unit:"片"}],note:"一鍋完成，適合快速早餐",steps:["蔬菜切細，雞蛋打散。","先炒蔬菜，再倒入蛋液。","撒上起司後對折。"],url:"https://www.google.com/search?q=蔬菜歐姆蛋食譜"},
-{id:"tomato-toast",name:"番茄起司吐司",emoji:"🍞",flavor:"西式輕食",minutes:10,ingredients:[{name:"吐司",quantity:2,unit:"片"},{name:"番茄",quantity:1,unit:"顆"},{name:"起司",quantity:1,unit:"片"}],note:"不用開大火，簡單少油",steps:["番茄切片。","吐司放上番茄與起司。","煎至起司融化。"],url:"https://www.google.com/search?q=番茄起司吐司食譜"},
-{id:"egg-soup",name:"紫菜蛋花湯",emoji:"🥣",flavor:"清爽湯品",minutes:10,ingredients:[{name:"雞蛋",quantity:1,unit:"顆"},{name:"醬油",quantity:1,unit:"份"}],note:"只用一個鍋子就能完成",steps:["水煮滾後加入醬油。","蛋液慢慢倒入。","關火後加入紫菜。"],url:"https://www.google.com/search?q=紫菜蛋花湯食譜"},
-{id:"onion-egg",name:"洋蔥炒蛋",emoji:"🧅",flavor:"台式家常",minutes:12,ingredients:[{name:"雞蛋",quantity:2,unit:"顆"},{name:"洋蔥",quantity:1,unit:"顆"}],note:"食材少、步驟簡單",steps:["洋蔥切絲，雞蛋打散。","先炒軟洋蔥。","加入蛋液炒熟。"],url:"https://www.google.com/search?q=洋蔥炒蛋食譜"},
-{id:"carrot-egg",name:"紅蘿蔔炒蛋",emoji:"🥕",flavor:"台式家常",minutes:15,ingredients:[{name:"雞蛋",quantity:2,unit:"顆"},{name:"紅蘿蔔",quantity:1,unit:"根"}],note:"顏色漂亮又適合新手",steps:["紅蘿蔔刨絲。","蛋炒至半熟後盛起。","炒紅蘿蔔，再拌回雞蛋。"],url:"https://www.google.com/search?q=紅蘿蔔炒蛋食譜"},
-{id:"cabbage-fry",name:"清炒高麗菜",emoji:"🥬",flavor:"蔬菜料理",minutes:10,ingredients:[{name:"高麗菜",quantity:2,unit:"份"},{name:"醬油",quantity:1,unit:"份"}],note:"消耗蔬菜最快的一鍋料理",steps:["高麗菜洗淨切片。","放入鍋中翻炒。","加少量醬油拌勻。"],url:"https://www.google.com/search?q=清炒高麗菜食譜"},
-{id:"cucumber-salad",name:"涼拌小黃瓜",emoji:"🥒",flavor:"清爽料理",minutes:8,ingredients:[{name:"小黃瓜",quantity:2,unit:"條"},{name:"醬油",quantity:1,unit:"份"}],note:"不用開火，炎熱天氣很適合",steps:["小黃瓜拍裂切段。","加入醬油拌勻。","冷藏十分鐘後享用。"],url:"https://www.google.com/search?q=涼拌小黃瓜食譜"},
-{id:"onion-noodle",name:"洋蔥拌麵",emoji:"🍜",flavor:"麵食料理",minutes:15,ingredients:[{name:"麵條",quantity:1,unit:"份"},{name:"洋蔥",quantity:1,unit:"顆"},{name:"醬油",quantity:1,unit:"份"}],note:"一鍋煮麵，快速解決一餐",steps:["洋蔥切絲。","麵條煮熟。","洋蔥與麵條拌入醬油。"],url:"https://www.google.com/search?q=洋蔥拌麵食譜"},
-{id:"soy-noodle",name:"醬油乾麵",emoji:"🍜",flavor:"麵食料理",minutes:10,ingredients:[{name:"麵條",quantity:1,unit:"份"},{name:"醬油",quantity:1,unit:"份"}],note:"冰箱食材不多時的安心選擇",steps:["麵條煮熟瀝乾。","加入醬油拌勻。","可加青蔥或雞蛋。"],url:"https://www.google.com/search?q=醬油乾麵食譜"},
-{id:"vegetable-fried-rice",name:"蔬菜炒飯",emoji:"🍚",flavor:"台式家常",minutes:20,ingredients:[{name:"白飯",quantity:2,unit:"份"},{name:"青菜",quantity:1,unit:"份"},{name:"雞蛋",quantity:1,unit:"顆"}],note:"把剩飯和蔬菜一次消耗掉",steps:["蔬菜切小段。","炒蛋後加入白飯。","放入蔬菜翻炒均勻。"],url:"https://www.google.com/search?q=蔬菜炒飯食譜"},
-{id:"ham-toast",name:"香煎起司吐司",emoji:"🥪",flavor:"西式輕食",minutes:8,ingredients:[{name:"吐司",quantity:2,unit:"片"},{name:"起司",quantity:1,unit:"片"}],note:"早餐或宵夜都適合",steps:["吐司夾入起司。","平底鍋小火煎兩面。","起司融化後切半。"],url:"https://www.google.com/search?q=起司吐司食譜"},
-{id:"banana-oat",name:"香蕉燕麥",emoji:"🍌",flavor:"早餐甜點",minutes:8,ingredients:[{name:"香蕉",quantity:1,unit:"根"},{name:"燕麥",quantity:1,unit:"份"},{name:"牛奶",quantity:1,unit:"份"}],note:"免複雜烹調的快速早餐",steps:["香蕉壓成泥。","加入燕麥與牛奶。","拌勻後靜置三分鐘。"],url:"https://www.google.com/search?q=香蕉燕麥食譜"},
-{id:"apple-yogurt",name:"蘋果優格杯",emoji:"🍎",flavor:"早餐甜點",minutes:5,ingredients:[{name:"蘋果",quantity:1,unit:"顆"},{name:"優格",quantity:1,unit:"份"}],note:"不用開火，五分鐘完成",steps:["蘋果切小丁。","放入優格中。","拌勻即可食用。"],url:"https://www.google.com/search?q=蘋果優格食譜"},
-{id:"milk-oat",name:"牛奶燕麥粥",emoji:"🥣",flavor:"早餐甜點",minutes:10,ingredients:[{name:"牛奶",quantity:1,unit:"份"},{name:"燕麥",quantity:1,unit:"份"}],note:"溫和飽足，適合早餐",steps:["牛奶倒入鍋中加熱。","加入燕麥小火煮。","煮至濃稠即可。"],url:"https://www.google.com/search?q=牛奶燕麥粥食譜"},
-{id:"beef-onion",name:"洋蔥牛肉片",emoji:"🥩",flavor:"肉類料理",minutes:20,ingredients:[{name:"牛肉",quantity:1,unit:"份"},{name:"洋蔥",quantity:1,unit:"顆"},{name:"醬油",quantity:1,unit:"份"}],note:"鹹香下飯，步驟不複雜",steps:["牛肉與洋蔥切片。","先炒洋蔥至透明。","加入牛肉與醬油炒熟。"],url:"https://www.google.com/search?q=洋蔥牛肉食譜"},
-{id:"pork-cabbage",name:"高麗菜炒豬肉",emoji:"🥬",flavor:"肉類料理",minutes:20,ingredients:[{name:"豬肉",quantity:1,unit:"份"},{name:"高麗菜",quantity:2,unit:"份"}],note:"肉和菜一起完成，少洗一個盤子",steps:["豬肉切片，高麗菜切塊。","先炒豬肉至變色。","加入高麗菜炒軟。"],url:"https://www.google.com/search?q=高麗菜炒豬肉食譜"},
-{id:"chicken-salad",name:"雞胸肉蔬菜盤",emoji:"🥗",flavor:"清爽料理",minutes:20,ingredients:[{name:"雞胸肉",quantity:1,unit:"包"},{name:"小黃瓜",quantity:1,unit:"條"},{name:"番茄",quantity:1,unit:"顆"}],note:"清爽少油，適合一人份",steps:["雞胸肉煎熟切片。","番茄與小黃瓜切片。","全部放在盤中即可。"],url:"https://www.google.com/search?q=雞胸肉蔬菜沙拉食譜"},
-{id:"sausage-cabbage",name:"香腸炒高麗菜",emoji:"🌭",flavor:"台式家常",minutes:15,ingredients:[{name:"香腸",quantity:1,unit:"條"},{name:"高麗菜",quantity:2,unit:"份"}],note:"香腸本身有味道，調味很簡單",steps:["香腸切片煎香。","加入高麗菜翻炒。","炒軟後即可起鍋。"],url:"https://www.google.com/search?q=香腸炒高麗菜食譜"},
-{id:"curry-noodle",name:"咖哩拌麵",emoji:"🍛",flavor:"日式風味",minutes:15,ingredients:[{name:"麵條",quantity:1,unit:"份"},{name:"咖哩塊",quantity:1,unit:"盒"},{name:"洋蔥",quantity:1,unit:"顆"}],note:"用少量咖哩塊就能完成",steps:["洋蔥切絲炒軟。","加入水與咖哩塊煮開。","拌入煮好的麵條。"],url:"https://www.google.com/search?q=咖哩拌麵食譜"},
-{id:"rice-curry",name:"蔬菜咖哩飯",emoji:"🍛",flavor:"日式風味",minutes:25,ingredients:[{name:"白飯",quantity:2,unit:"份"},{name:"咖哩塊",quantity:1,unit:"盒"},{name:"紅蘿蔔",quantity:1,unit:"根"},{name:"洋蔥",quantity:1,unit:"顆"}],note:"蔬菜切小塊就很容易煮軟",steps:["蔬菜切塊後炒香。","加水煮至蔬菜變軟。","放入咖哩塊淋在白飯上。"],url:"https://www.google.com/search?q=蔬菜咖哩飯食譜"},
-{id:"tomato-noodle",name:"番茄湯麵",emoji:"🍜",flavor:"麵食料理",minutes:18,ingredients:[{name:"番茄",quantity:2,unit:"顆"},{name:"麵條",quantity:1,unit:"份"},{name:"雞蛋",quantity:1,unit:"顆"}],note:"酸甜開胃，也能消耗番茄",steps:["番茄切塊煮出湯汁。","加入水與麵條煮熟。","打入蛋液後關火。"],url:"https://www.google.com/search?q=番茄湯麵食譜"},
-{id:"egg-sandwich",name:"水煮蛋吐司",emoji:"🥪",flavor:"西式輕食",minutes:15,ingredients:[{name:"雞蛋",quantity:2,unit:"顆"},{name:"吐司",quantity:2,unit:"片"}],note:"方便攜帶的簡單早餐",steps:["雞蛋煮熟剝殼。","雞蛋壓碎並拌勻。","夾入吐司即可。"],url:"https://www.google.com/search?q=水煮蛋吐司食譜"},
-{id:"fruit-yogurt",name:"水果優格",emoji:"🍓",flavor:"早餐甜點",minutes:5,ingredients:[{name:"葡萄",quantity:1,unit:"份"},{name:"優格",quantity:1,unit:"份"}],note:"清爽無火料理，適合下午點心",steps:["水果洗淨切半。","加入優格。","拌勻後即可享用。"],url:"https://www.google.com/search?q=水果優格食譜"},
-{id:"garlic-greens",name:"蒜香青菜",emoji:"🥬",flavor:"蔬菜料理",minutes:8,ingredients:[{name:"青菜",quantity:2,unit:"份"},{name:"醬油",quantity:1,unit:"份"}],note:"快速消耗葉菜類",steps:["青菜洗淨切段。","大火快炒至變軟。","加少量醬油拌勻。"],url:"https://www.google.com/search?q=蒜香青菜食譜"},
-{id:"beef-noodle",name:"牛肉湯麵",emoji:"🍜",flavor:"麵食料理",minutes:25,ingredients:[{name:"牛肉",quantity:1,unit:"份"},{name:"麵條",quantity:1,unit:"份"},{name:"青蔥",quantity:1,unit:"把"}],note:"暖胃的一鍋料理",steps:["牛肉煎至變色。","加水煮成湯底。","放入麵條與青蔥煮熟。"],url:"https://www.google.com/search?q=牛肉湯麵食譜"},
-{id:"chicken-rice",name:"雞肉拌飯",emoji:"🍚",flavor:"台式家常",minutes:20,ingredients:[{name:"雞胸肉",quantity:1,unit:"包"},{name:"白飯",quantity:2,unit:"份"},{name:"醬油",quantity:1,unit:"份"}],note:"用現成白飯快速完成",steps:["雞肉切小塊煎熟。","加入醬油拌炒。","淋在白飯上即可。"],url:"https://www.google.com/search?q=雞肉拌飯食譜"},
-{id:"onion-soup",name:"洋蔥清湯",emoji:"🍲",flavor:"清爽湯品",minutes:20,ingredients:[{name:"洋蔥",quantity:2,unit:"顆"},{name:"醬油",quantity:1,unit:"份"}],note:"溫暖簡單，適合清冰箱",steps:["洋蔥切絲炒軟。","加水煮至透明。","用醬油簡單調味。"],url:"https://www.google.com/search?q=洋蔥清湯食譜"}
-];
-const icon:Record<string,string>=Object.fromEntries(groups.map(g=>[g[0],g[1]]));
-const flavorIcons:Record<string,string>={全部:"🛍️","台式家常":"🍳","西式輕食":"🥪","清爽湯品":"🍲","麵食料理":"🍜","日式風味":"🍛","蔬菜料理":"🥬","清爽料理":"🥗","早餐甜點":"🥞","肉類料理":"🥩"};
-const date=()=>new Date().toISOString().slice(0,10), plus=(n:number)=>{const d=new Date();d.setDate(d.getDate()+n);return d.toISOString().slice(0,10)}, left=(d:string)=>Math.ceil((new Date(d+"T23:59:59").getTime()-Date.now())/86400000), label=(d:string)=>left(d)<0?"已過期":left(d)===0?"今天到期":"還有 "+left(d)+" 天";
-function readStored(key:string){try{const raw=localStorage.getItem(key);return raw?JSON.parse(raw):[]}catch{return []}}
-function foodsFrom(){const a=readStored(FK);const m=new Map<string,Food>();(Array.isArray(a)?a:[]).forEach((x:any)=>{if(!x?.name)return;const f:Food={id:String(x.id||crypto.randomUUID()),name:String(x.name),quantity:Number(x.quantity)||1,unit:String(x.unit||"份"),expiry:x.expiry&&x.expiry>=date()?x.expiry:plus(5),category:String(x.category||"其他"),done:Boolean(x.done)};const o=m.get(f.name);if(o){o.quantity+=f.quantity;o.expiry=o.expiry<f.expiry?o.expiry:f.expiry}else m.set(f.name,f)});return Array.from(m.values())};
-function shopFrom(){const a=readStored(SK);return(Array.isArray(a)?a:[]).map((x:any,i:number)=>typeof x==="string"?{id:x+i,name:x,quantity:1,unit:"份",category:"其他",source:"手動加入",done:false}:x)}
-export default function Home(){const[v,setV]=useState<View>("home"),[foods,setFoods]=useState<Food[]>([]),[shop,setShop]=useState<Shop[]>([]),[notice,setNotice]=useState(""),[filter,setFilter]=useState(false),[ready,setReady]=useState(false);useEffect(()=>{setFoods(foodsFrom());setShop(shopFrom());setReady(true)},[]);useEffect(()=>{if(ready){localStorage.setItem(FK,JSON.stringify(foods));localStorage.setItem(SK,JSON.stringify(shop))}},[foods,shop,ready]);useEffect(()=>{if(notice){const t=setTimeout(()=>setNotice(""),3500);return()=>clearTimeout(t)}},[notice]);function add(r:Recipe){const miss=r.ingredients.filter(i=>{const f=foods.find(x=>!x.done&&x.name===i.name);return!f||f.quantity<i.quantity});if(!miss.length){setNotice("這道料理的食材已經齊全。");return}setShop(s=>{const n=[...s];miss.forEach(i=>{const old=n.find(x=>x.name===i.name&&!x.done),need=i.quantity-(foods.find(f=>!f.done&&f.name===i.name)?.quantity||0);if(old)old.quantity=Math.max(old.quantity,need);else n.push({id:crypto.randomUUID(),name:i.name,quantity:need,unit:i.unit,category:(groups.find(g=>(g[2] as readonly string[]).includes(i.name))?.[0]||"其他") as string,source:r.name,done:false})});return n});setNotice("已將缺少食材加入購物清單。")}function go(x:View){setV(x);if(x!=="fridge")setFilter(false)}return <main className="shell"><header className="topbar"><button className="brand" onClick={()=>go("home")} type="button"><span className="logo">🧊</span><span>冰箱管家</span></button><span className="eyebrow">{v==="home"?"GOOD TO EAT":v==="fridge"?"MY FRIDGE":v==="recipes"?"FIND FOOD":"SHOPPING"}</span></header>{v==="home"&&<AIHome foods={foods} go={go} add={add}/>} {v==="fridge"&&<FridgeVisual foods={foods} setFoods={setFoods} filter={filter} setFilter={setFilter}/>} {v==="recipes"&&<Recipes foods={foods.filter(x=>!x.done)} add={add}/>} {v==="shopping"&&<ShoppingVisual shop={shop} setShop={setShop} setFoods={setFoods}/>}<nav className="bottom-nav"><N a={v==="home"} f={()=>go("home")} i="🏠" t="首頁"/><N a={v==="fridge"} f={()=>go("fridge")} i="🧊" t="我的冰箱"/><N a={v==="recipes"} f={()=>go("recipes")} i="🍳" t="找料理"/><N a={v==="shopping"} f={()=>go("shopping")} i="🛒" t={"購物 "+shop.filter(x=>!x.done).length}/></nav>{notice&&<div className="toast success" role="status">✓ {notice}</div>}</main>}
-function N(p:{a:boolean;f:()=>void;i:string;t:string}){return <button className={"nav-item "+(p.a?"active":"")} onClick={p.f} type="button">{p.i} {p.t}</button>}
-type AIReply={message:string;recipeId:string|null;recipeName:string|null;emoji?:string;reason:string[];availableIngredients:string[];missingIngredients:string[];cookTime:number|null;difficulty:number;actions:string[]};
-type ChatEntry={role:"user"|"assistant";text:string;reply?:AIReply;error?:boolean;retry?:string}
-function AIHome({foods,go,add}:{foods:Food[];go:(x:View)=>void;add:(r:Recipe)=>void}){const[input,setInput]=useState(""),[busy,setBusy]=useState(false),[history,setHistory]=useState<ChatEntry[]>([]),[cooking,setCooking]=useState<Recipe|null>(null);const quick=["幫我決定今天吃什麼","消耗快過期食材","15 分鐘內能做什麼","我今天不想洗很多鍋","用現有食材就好"];async function ask(text=input){if(!text.trim()||busy)return;setInput("");setBusy(true);setHistory(h=>[...h,{role:"user",text}]);const controller=new AbortController();const timeout=window.setTimeout(()=>controller.abort(),12000);try{const r=await fetch("/api/assistant",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({message:text,foods,recipes,history}),signal:controller.signal});if(!r.ok)throw new Error("API_ERROR");const data=await r.json() as AIReply;setHistory(h=>[...h,{role:"assistant",text:data.message,reply:data}])}catch(error){const message=error instanceof DOMException&&error.name==="AbortError"?"回應時間比較久，可能是網路或服務逾時。":"目前無法連線到料理助手。";setHistory(h=>[...h,{role:"assistant",text:message,error:true,retry:text}])}finally{window.clearTimeout(timeout);setBusy(false)}}if(cooking)return <CookingMode recipe={cooking} foods={foods} back={()=>setCooking(null)}/>;const latest=[...history].reverse().find(x=>x.role==="assistant"),recipe=latest?.reply?.recipeId?recipes.find(r=>r.id===latest.reply?.recipeId):null;return <><section className="ai-hero"><div className="eyebrow">AI 冰箱管家</div><h1 className="title">今天想吃什麼？</h1><p className="subtle">告訴我你想吃什麼，我會看看冰箱幫你想辦法。</p><div className="ai-chat"><div className="ai-message assistant"><span className="ai-avatar">✦</span><div><strong>嗨！我是你的冰箱管家</strong><p>你可以告訴我口味、時間，或直接說「我不知道吃什麼」。</p></div></div>{busy&&<div className="ai-loading" role="status"><span className="loading-dots">•••</span><span>正在查看你的冰箱與料理資料…</span></div>}{history.map((entry,i)=><div key={i} className={"chat-entry "+entry.role}><div className={"ai-message "+entry.role}><span className="ai-avatar">{entry.role==="user"?"你":"✦"}</span><div>{entry.text}</div></div>{entry.error&&<button className="retry-btn" type="button" onClick={()=>ask(entry.retry||"")}>↻ 重新嘗試</button>}{entry.reply&&<AIResult data={entry.reply} recipe={entry.reply.recipeId?recipes.find(r=>r.id===entry.reply?.recipeId)||null:null} add={add} go={go} start={r=>setCooking(r)} ask={ask}/>}</div>)}</div><form className="ai-input-row" onSubmit={e=>{e.preventDefault();ask()}}><input className="input" value={input} onChange={e=>setInput(e.target.value)} placeholder="例如：我想喝酸辣湯，你覺得呢？" disabled={busy}/><button className="primary ai-send" type="submit" disabled={!input.trim()||busy}>{busy?"處理中…":"送出"}</button></form></section><section className="quick-questions"><div className="section-title"><h2>試著問我</h2></div><div className="quick-question-grid">{quick.map(x=><button type="button" key={x} onClick={()=>ask(x)}>{x}</button>)}</div></section><section className="card expiry-strip"><div className="section-title"><h2>即將到期</h2><button className="text-btn" type="button" onClick={()=>go("fridge")}>查看冰箱</button></div>{foods.filter(f=>!f.done&&left(f.expiry)<=3).length?<div className="expiry-chips">{foods.filter(f=>!f.done&&left(f.expiry)<=3).map(f=><span key={f.id}>⚠ {f.name} · {label(f.expiry)}</span>)}</div>:<p className="subtle">太好了，目前沒有即將到期的食材。</p>}</section><section className="card home-panel"><div className="section-title"><h2>今天也可以吃</h2><button className="text-btn" type="button" onClick={()=>go("recipes")}>瀏覽全部</button></div><div className="mini-recipe-grid">{recipes.slice(0,3).map(r=><button type="button" key={r.id} onClick={()=>go("recipes")}><span>{r.emoji}</span><strong>{r.name}</strong><small>{r.minutes} 分鐘</small></button>)}</div></section></>}
-function AIResult({data,recipe,add,go,start,ask}:{data:AIReply;recipe:Recipe|null;add:(r:Recipe)=>void;go:(x:View)=>void;start:(r:Recipe)=>void;ask:(x:string)=>void}){const[added,setAdded]=useState(false);return <div className="ai-result"><div className="ai-result-title"><span>{data.emoji||"🍳"}</span><div><strong>{data.recipeName||"一般料理建議"}</strong>{data.cookTime&&<small>約 {data.cookTime} 分鐘 · 難度 {"★".repeat(data.difficulty)}{"☆".repeat(3-data.difficulty)}</small>}</div></div>{data.reason.length>0&&<div className="ai-reasons">{data.reason.map(x=><span key={x}>💡 {x}</span>)}</div>}{data.availableIngredients.length>0&&<div className="ingredient-status"><strong>你已經有</strong><p>{data.availableIngredients.map(x=><span className="have" key={x}>✓ {x}</span>)}</p></div>}{data.missingIngredients.length>0&&<div className="ingredient-status"><strong>還缺少</strong><p>{data.missingIngredients.map(x=><span className="missing" key={x}>⚠ {x}</span>)}</p></div>}{recipe&&<div className="ai-actions"><button className="primary small-btn" type="button" onClick={()=>start(recipe)}>用現有食材開始做</button><button className="soft-btn" type="button" onClick={()=>go("recipes")}>查看完整食譜</button>{data.missingIngredients.length>0&&<button className="soft-btn" type="button" disabled={added} onClick={()=>{add(recipe);setAdded(true)}}>{added?"✓ 已加入購物清單":"全部加入購物清單"}</button>}<button className="text-btn" type="button" onClick={()=>ask("換一個推薦")}>換一個推薦</button></div>}</div>}
-function CookingMode({recipe,foods,back}:{recipe:Recipe;foods:Food[];back:()=>void}){const[step,setStep]=useState(0),[done,setDone]=useState(false);const steps=recipe.steps.map((s,i)=>({title:i===0?"準備食材":i===1?"開始烹調":"完成這一步",text:s,tip:i===0?"先把食材放在手邊，照份量準備即可。":i===1?"使用中小火，不需要等鍋子冒煙。":"完成後先試味道，再關火。"}));function deduct(){const next=foods.map(f=>{const item=recipe.ingredients.find(i=>i.name===f.name);return item?{...f,quantity:Math.max(0,f.quantity-item.quantity),done:f.quantity<=item.quantity}:f});localStorage.setItem(FK,JSON.stringify(next));window.location.reload()}return <><button className="back-btn" type="button" onClick={back}>← 返回 AI 對話</button><section className="card cooking-panel"><div className="eyebrow">新手料理模式</div><div className="cooking-count">Step {step+1} / {steps.length}</div><div className="recipe-emoji large">{recipe.emoji}</div><h1 className="title">{recipe.name}</h1><div className="cooking-step"><h2>{steps[step].title}</h2><p>{steps[step].text}</p><div className="cooking-tip">⚠️ {steps[step].tip}</div></div>{step<steps.length-1?<button className="primary" type="button" onClick={()=>setStep(step+1)}>完成這一步 →</button>:done?<div className="confirm-card"><strong>完成！要更新冰箱庫存嗎？</strong><p>只會扣除這次料理使用的食材，不會自動修改其他資料。</p><button className="primary" type="button" onClick={deduct}>確認扣除</button><button className="text-btn" type="button" onClick={back}>稍後再處理</button></div>:<button className="primary" type="button" onClick={()=>setDone(true)}>我完成料理了</button>}</section></>}
-function Dashboard(p:{foods:Food[];shop:Shop[];go:(x:View)=>void;setFilter:(x:boolean)=>void}){const a=p.foods.filter(x=>!x.done),e=a.filter(x=>left(x.expiry)<=3),r=recipes.find(x=>x.ingredients.some(i=>e.some(f=>f.name===i.name)))||recipes[0];return <><section className="hero"><div className="card welcome"><div className="eyebrow">今天也好好吃飯</div><h1 className="title">今天吃什麼？</h1><p className="subtle">先處理快到期食材，再決定今天的料理。</p><div className="stats"><button className="stat stat-link" onClick={()=>p.go("fridge")} type="button"><strong>{a.length}</strong><span>庫存食材</span></button><button className="stat stat-link" onClick={()=>{p.setFilter(true);p.go("fridge")}} type="button"><strong className={e.length?"number-warn":""}>{e.length}</strong><span>即將到期</span></button><button className="stat stat-link" onClick={()=>p.go("shopping")} type="button"><strong>{p.shop.filter(x=>!x.done).length}</strong><span>待採買</span></button></div></div><div className="card tip"><div><div className="tip-icon">{e.length?"⚠️":"✨"}</div><h3>{e.length?"先處理這些":"今日推薦"}</h3><h2>{r.emoji} {r.name}</h2><p className="subtle">{e.length?"可消耗 "+e[0].name+"，"+label(e[0].expiry):r.note}</p></div><button className="primary" onClick={()=>p.go("recipes")} type="button">查看食譜 →</button></div></section><section className="card home-panel"><div className="section-title"><h2>最近新增</h2><button className="text-btn" onClick={()=>p.go("fridge")} type="button">查看全部</button></div>{a.length?<div className="recent-foods">{a.slice(-4).reverse().map(f=><div className={"recent-food "+(left(f.expiry)<=3?"soon":"fresh")} key={f.id}><span>{icon[f.category]||"📦"}</span><div><strong>{f.name}</strong><small>{f.quantity} 項 · {label(f.expiry)}</small></div></div>)}</div>:<Empty text="冰箱目前是空的，先加入幾樣食材，開始找到適合你的料理。" go={()=>p.go("fridge")}/>}</section><section className="card home-panel"><div className="section-title"><h2>購物清單摘要</h2><button className="text-btn" onClick={()=>p.go("shopping")} type="button">查看清單</button></div><p className="subtle">{p.shop.filter(x=>!x.done).length?"還有 "+p.shop.filter(x=>!x.done).length+" 項待採買。":"購物清單目前是空的，可以從食譜加入需要採買的食材。"}</p></section></>}
-function Empty(p:{text:string;go:()=>void}){return <div className="empty"><div className="empty-icon">🧊</div><p>{p.text}</p><button className="soft-btn" onClick={p.go} type="button">新增食材</button></div>}
-function Fridge({foods,setFoods,filter,setFilter}:{foods:Food[];setFoods:(x:Food[])=>void;filter:boolean;setFilter:(x:boolean)=>void}) {
-  const [selected,setSelected]=useState("蔬菜"); const [picked,setPicked]=useState(""); const [custom,setCustom]=useState("");
-  const [qty,setQty]=useState(1); const [unit,setUnit]=useState("份"); const [expiry,setExpiry]=useState(plus(5)); const [search,setSearch]=useState("");
-  const group=groups.find(g=>g[0]===selected); const visible=foods.filter(f=>(!filter||left(f.expiry)<=3)&&(!search||f.name.includes(search)));
-  function add(){const name=(picked||custom).trim(); if(!name)return; const old=foods.find(f=>f.name===name&&!f.done);
-    if(old)setFoods(foods.map(f=>f.id===old.id?{...f,quantity:f.quantity+qty,expiry:f.expiry<expiry?f.expiry:expiry}:f));
-    else setFoods([{id:crypto.randomUUID(),name,quantity:qty,unit,expiry,category:selected,done:false,addedAt:Date.now()},...foods]);
-    setPicked("");setCustom("");setQty(1);
-  }
-  function edit(id:string,p:Partial<Food>){setFoods(foods.map(f=>f.id===id?{...f,...p}:f))}
-  return <><div className="page-heading"><div className="eyebrow">庫存管理</div><h1 className="title">我的冰箱</h1><p className="subtle">選分類、選食材，最後確認加入；相同食材會自動合併。</p></div>
-  <div className="layout"><section className="card form-card"><div className="section-title"><h2>新增食材</h2><span>✦</span></div>
-  <div className="category-grid">{groups.map(g=><button className={"category-tile "+(selected===g[0]?"selected":"")} onClick={()=>{setSelected(g[0]);setPicked("")}} type="button" key={g[0]}><span>{g[1]}</span><strong>{g[0]}</strong><small>{g[2].length} 種</small></button>)}</div>
-  <div className="picker-title">{selected}食材</div><div className="ingredient-grid compact-grid">{group?.[2].map(item=><button className={"ingredient-btn "+(picked===item?"chosen":"")} onClick={()=>{setPicked(item);setCustom("")}} type="button" key={item}>{item}</button>)}<button className="ingredient-btn free-btn" onClick={()=>{setPicked("");setCustom("")}} type="button">＋ 自由輸入</button></div>
-  <input className="input" value={custom} onChange={e=>{setCustom(e.target.value);setPicked("")}} placeholder="自由輸入食材名稱（選填）" />
-  <div className="row"><div><label className="label">數量</label><div className="quantity-picker"><button onClick={()=>setQty(Math.max(1,qty-1))} type="button">−</button><strong>{qty}</strong><button onClick={()=>setQty(qty+1)} type="button">＋</button></div></div><div><label className="label" htmlFor="unit">單位</label><select id="unit" className="input" value={unit} onChange={e=>setUnit(e.target.value)}>{units.map(u=><option key={u}>{u}</option>)}</select></div></div>
-  <label className="label" htmlFor="add-expiry">到期日（未設定預設 5 天後）</label><input id="add-expiry" className="input" type="date" min={date()} value={expiry} onChange={e=>setExpiry(e.target.value)} />
-  <button className="primary confirm-btn" disabled={!picked&&!custom.trim()} onClick={add} type="button">✓ 確認加入冰箱</button></section>
-  <section className="card inventory-card"><div className="section-title"><h2>目前庫存 <span className="muted-count">({visible.filter(f=>!f.done).length})</span></h2><button className="filter-button" onClick={()=>setFilter(!filter)} type="button">{filter?"顯示全部":"只看即將到期"}</button></div><input className="input inventory-search" value={search} onChange={e=>setSearch(e.target.value)} placeholder="搜尋庫存食材" />
-  {visible.length?<div className="stock-list">{visible.map(f=><Stock key={f.id} food={f} edit={edit} remove={()=>{if(window.confirm("確定要刪除 "+f.name+" 嗎？"))setFoods(foods.filter(x=>x.id!==f.id))}} />)}</div>:<Empty text={filter?"太好了，目前沒有即將到期的食材。":"冰箱目前是空的，先加入幾樣食材，開始找到適合你的料理。"} go={()=>setFilter(false)} />}</section></div></>
+type View = "home" | "fridge" | "recipes" | "shopping";
+type Food = {
+  id: string;
+  name: string;
+  quantity: number;
+  unit: string;
+  expiry: string;
+  category: string;
+  done: boolean;
+};
+type Shop = {
+  id: string;
+  name: string;
+  quantity: number;
+  unit: string;
+  category: string;
+  source: string;
+  done: boolean;
+};
+type Ingredient = { name: string; quantity: number; unit: string };
+type Recipe = {
+  id: string;
+  name: string;
+  emoji: string;
+  flavor: string;
+  minutes: number;
+  ingredients: Ingredient[];
+  note: string;
+  steps: string[];
+  url: string;
+};
+type Reply = {
+  message: string;
+  recipeId: string | null;
+  recipeName: string | null;
+  emoji?: string;
+  generatedRecipe?: Recipe | null;
+  suggestions?: string[];
+  reason: string[];
+  availableIngredients: string[];
+  missingIngredients: string[];
+  cookTime: number | null;
+  difficulty: number;
+  actions: string[];
+};
+type Chat = {
+  role: "user" | "assistant";
+  text: string;
+  reply?: Reply;
+  error?: boolean;
+  retry?: string;
+};
+const FK = "fridge-butler-foods",
+  SK = "fridge-butler-shopping";
+const CUSTOM_KEY = "fridge-butler-custom-ingredients";
+const categories = ["蔬菜", "蛋奶", "肉類", "水果", "主食", "其他"],
+  icons: Record<string, string> = {
+    蔬菜: "🥬",
+    蛋奶: "🥚",
+    肉類: "🍖",
+    水果: "🍎",
+    主食: "🍚",
+    其他: "📦",
+  },
+  flavorIcons: Record<string, string> = {
+    全部: "🛍️",
+    台式家常: "🍳",
+    西式輕食: "🥪",
+    清爽湯品: "🍲",
+    麵食料理: "🍜",
+    日式風味: "🍛",
+    蔬菜料理: "🥬",
+    早餐甜點: "🥞",
+    肉類料理: "🥩",
+  };
+const catalog: Record<string, string[]> = {
+  蔬菜: [
+    "番茄",
+    "青菜",
+    "高麗菜",
+    "小黃瓜",
+    "洋蔥",
+    "青蔥",
+    "紅蘿蔔",
+    "金針菇",
+    "玉米",
+  ],
+  蛋奶: ["雞蛋", "牛奶", "起司", "優格"],
+  肉類: ["雞胸肉", "豬肉", "牛肉", "香腸", "貢丸", "火腿"],
+  水果: ["香蕉", "蘋果", "橘子", "葡萄"],
+  主食: ["白飯", "吐司", "麵條", "燕麥", "泡麵", "白米"],
+  其他: ["醬油", "鹽", "胡椒", "奶油", "咖哩塊", "豆腐", "紫菜"],
+};
+const units = ["份", "顆", "把", "包", "瓶", "克", "公斤", "片", "條", "盒"],
+  flavors = [
+    "全部",
+    "台式家常",
+    "西式輕食",
+    "清爽湯品",
+    "麵食料理",
+    "日式風味",
+    "蔬菜料理",
+    "早餐甜點",
+    "肉類料理",
+  ];
+const ingredientDefaults: Record<string, { unit: string; days: number }> = {
+  蘋果: { unit: "顆", days: 7 },
+  香蕉: { unit: "根", days: 5 },
+  橘子: { unit: "顆", days: 7 },
+  葡萄: { unit: "串", days: 5 },
+  青菜: { unit: "把", days: 3 },
+  青江菜: { unit: "把", days: 3 },
+  番茄: { unit: "顆", days: 5 },
+  高麗菜: { unit: "顆", days: 7 },
+  小黃瓜: { unit: "條", days: 5 },
+  洋蔥: { unit: "顆", days: 14 },
+  雞蛋: { unit: "顆", days: 21 },
+  牛奶: { unit: "瓶", days: 7 },
+  豆腐: { unit: "盒", days: 3 },
+  貢丸: { unit: "包", days: 14 },
+  麵條: { unit: "包", days: 30 },
+  泡麵: { unit: "包", days: 180 },
+  白飯: { unit: "份", days: 1 },
+};
+function defaults(name: string) {
+  const d = ingredientDefaults[name];
+  return { unit: d?.unit || "份", expiry: future(d?.days || 5) };
 }
-function Stock({food,edit,remove}:{food:Food;edit:(id:string,p:Partial<Food>)=>void;remove:()=>void}){const n=left(food.expiry),s=n<0?"expired":n===0?"today":n<=3?"soon":"fresh";return <article className={"stock "+s+" "+(food.done?"done":"")}><div className="stock-main"><strong>{food.name}</strong><span>{food.category} · {food.quantity} {food.unit}</span><b>{s==="fresh"?"新鮮":s==="soon"?"即將到期":s==="today"?"今天到期":"已過期"} · {label(food.expiry)}</b></div><input className="date-edit" type="date" min={date()} value={food.expiry} onChange={e=>edit(food.id,{expiry:e.target.value})} aria-label="修改到期日" /><div className="stock-actions"><button className="icon-btn" onClick={()=>edit(food.id,{done:!food.done})} type="button">{food.done?"↩":"✓"}</button><button className="delete-btn" onClick={remove} type="button">刪除</button></div></article>}
-
-function FridgeVisual({foods,setFoods,filter,setFilter}:{foods:Food[];setFoods:(x:Food[])=>void;filter:boolean;setFilter:(x:boolean)=>void}){const[selected,setSelected]=useState("蔬菜"),[picked,setPicked]=useState(""),[custom,setCustom]=useState(""),[qty,setQty]=useState(1),[expiry,setExpiry]=useState(plus(5)),[active,setActive]=useState<Food|null>(null),[search,setSearch]=useState("");const group=groups.find(g=>g[0]===selected);const visible=foods.filter(f=>!f.done&&(!filter||left(f.expiry)<=3)&&(!search||f.name.includes(search)));function add(){const name=(picked||custom).trim();if(!name)return;const old=foods.find(f=>f.name===name&&!f.done);if(old)setFoods(foods.map(f=>f.id===old.id?{...f,quantity:f.quantity+qty,expiry:f.expiry<expiry?f.expiry:expiry}:f));else setFoods([{id:crypto.randomUUID(),name,quantity:qty,unit:"份",expiry,category:selected,done:false,addedAt:Date.now()},...foods]);setPicked("");setCustom("");setQty(1)}function update(p:Partial<Food>){if(active)setFoods(foods.map(f=>f.id===active.id?{...f,...p}:f).filter(f=>f.quantity>0))}function remove(){if(active&&window.confirm("確定要刪除 "+active.name+" 嗎？")){setFoods(foods.filter(f=>f.id!==active.id));setActive(null)}}return <><div className="page-heading"><div className="eyebrow">庫存管理</div><h1 className="title">我的冰箱</h1><p className="subtle">點選冰箱裡的食材，就能編輯或刪除。</p></div><section className="card form-card"><div className="section-title"><h2>新增食材</h2><span>✦</span></div><div className="category-grid">{groups.map(g=><button className={"category-tile "+(selected===g[0]?"selected":"")} onClick={()=>{setSelected(g[0]);setPicked("")}} type="button" key={g[0]}><span>{g[1]}</span><strong>{g[0]}</strong><small>{g[2].length} 種</small></button>)}</div><div className="picker-title">{selected}食材</div><div className="ingredient-grid compact-grid">{group?.[2].map(item=><button className={"ingredient-btn "+(picked===item?"chosen":"")} onClick={()=>{setPicked(item);setCustom("")}} type="button" key={item}>{item}</button>)}<button className="ingredient-btn free-btn" onClick={()=>{setPicked("");setCustom("")}} type="button">＋ 自由輸入</button></div><input className="input" value={custom} onChange={e=>{setCustom(e.target.value);setPicked("")}} placeholder="自由輸入食材名稱" /><div className="qty-line"><label className="label">數量</label><div className="quantity-picker"><button onClick={()=>setQty(Math.max(1,qty-1))} type="button">−</button><strong>{qty}</strong><button onClick={()=>setQty(qty+1)} type="button">＋</button></div></div><label className="label" htmlFor="visual-expiry">到期日（未設定預設 5 天後）</label><input id="visual-expiry" className="input" type="date" min={date()} value={expiry} onChange={e=>setExpiry(e.target.value)} /><button className="primary confirm-btn" disabled={!picked&&!custom.trim()} onClick={add} type="button">✓ 確認加入冰箱</button></section><section className="card inventory-card"><div className="section-title"><h2>目前庫存 <span className="muted-count">({visible.length})</span></h2><button className="filter-button" onClick={()=>setFilter(!filter)} type="button">{filter?"顯示全部":"只看即將到期"}</button></div><input className="input inventory-search" value={search} onChange={e=>setSearch(e.target.value)} placeholder="搜尋庫存食材" /><div className="fridge-visual"><div className="fridge-handle"></div><div className="fridge-label">我的冰箱 · 點選食材查看</div>{groups.map(g=>{const items=visible.filter(f=>f.category===g[0]);return <div className="fridge-shelf" key={g[0]}><div className="fridge-category">{g[1]} {g[0]}</div>{items.length?items.map(f=><button type="button" className={"fridge-food "+(active?.id===f.id?"active":"")} key={f.id} onClick={()=>setActive(f)}><span>{icon[f.category]||"📦"}</span><strong>{f.name}</strong><small>{f.quantity} · {label(f.expiry)}</small></button>):<div className="fridge-empty">目前沒有食材</div>}</div>})}</div>{active&&<div className="food-editor"><div className="section-title"><h3>{active.name}</h3><button className="text-btn" onClick={()=>setActive(null)} type="button">收合</button></div><label className="label">數量</label><div className="quantity-picker"><button onClick={()=>update({quantity:Math.max(1,active.quantity-1)})} type="button">−</button><strong>{active.quantity}</strong><button onClick={()=>update({quantity:active.quantity+1})} type="button">＋</button></div><label className="label" htmlFor="edit-expiry">到期日</label><input id="edit-expiry" className="input" type="date" min={date()} value={active.expiry} onChange={e=>update({expiry:e.target.value})}/><div className="editor-actions"><button className="soft-btn" onClick={()=>update({done:true})} type="button">✓ 標記吃完</button><button className="delete-btn" onClick={remove} type="button">刪除食材</button></div></div>}</section></>}
-
-function ShoppingVisualLegacy({shop,setShop,setFoods}:{shop:Shop[];setShop:React.Dispatch<React.SetStateAction<Shop[]>>;setFoods:React.Dispatch<React.SetStateAction<Food[]>>}){const[selected,setSelected]=useState("蔬菜"),[picked,setPicked]=useState(""),[custom,setCustom]=useState(""),[qty,setQty]=useState(1),[active,setActive]=useState<Shop|null>(null);const group=groups.find(g=>g[0]===selected);function add(){const name=(picked||custom).trim();if(!name)return;setShop(s=>{const old=s.find(x=>x.name===name&&!x.done);if(old)return s.map(x=>x.id===old.id?{...x,quantity:x.quantity+qty}:x);return[{id:crypto.randomUUID(),name,quantity:qty,unit:"份",category:selected,source:"手動加入",done:false},...s]});setPicked("");setCustom("");setQty(1)}function update(p:Partial<Shop>){if(active)setShop(shop.map(x=>x.id===active.id?{...x,...p}:x))}function remove(){if(active&&window.confirm("確定刪除這項採買嗎？")){setShop(shop.filter(x=>x.id!==active.id));setActive(null)}}function moveIn(){const done=shop.filter(x=>x.done);if(!done.length)return;setFoods(fs=>{const next=[...fs];done.forEach(x=>{const old=next.find(f=>f.name===x.name&&!f.done);if(old)old.quantity+=x.quantity;else next.unshift({id:crypto.randomUUID(),name:x.name,quantity:x.quantity,unit:x.unit,expiry:plus(5),category:x.category,done:false})});return next});setShop(s=>s.filter(x=>!x.done))}return <><div className="page-heading"><div className="eyebrow">採買管理</div><h1 className="title">購物清單</h1><p className="subtle">先選分類，再選食材；點選食材即可標記購買，再點一次可取消。</p></div><section className="card shopping-form"><div className="section-title"><h2>新增採買</h2><span>✦</span></div><div className="category-grid compact-categories">{groups.map(g=><button className={"category-tile "+(selected===g[0]?"selected":"")} type="button" key={g[0]} onClick={()=>{setSelected(g[0]);setPicked("")}}><span>{g[1]}</span><strong>{g[0]}</strong><small>{g[2].length} 種</small></button>)}</div><div className="picker-title">{selected}食材</div><div className="ingredient-grid compact-grid shopping-picker-grid">{group?.[2].map(item=><button className={"ingredient-btn "+(picked===item?"chosen":"")} type="button" key={item} onClick={()=>{setPicked(item);setCustom("")}}>{item}</button>)}<button className="ingredient-btn free-btn" type="button" onClick={()=>{setPicked("");setCustom("")}}>＋ 自由輸入</button></div><input className="input" value={custom} onChange={e=>{setCustom(e.target.value);setPicked("")}} placeholder="自由輸入食材名稱" /><div className="qty-line"><label className="label">數量</label><div className="quantity-picker"><button type="button" onClick={()=>setQty(Math.max(1,qty-1))}>−</button><strong>{qty}</strong><button type="button" onClick={()=>setQty(qty+1)}>＋</button></div></div><button className="primary confirm-btn" type="button" disabled={!picked&&!custom.trim()} onClick={add}>✓ 加入購物清單</button></section><section className="card shopping-list"><div className="section-title"><h2>下次採買</h2><div className="actions"><button className="text-btn" type="button" onClick={()=>setShop(s=>s.filter(x=>!x.done))}>清除已完成</button><button className="primary small-btn" type="button" onClick={moveIn} disabled={!shop.some(x=>x.done)}>移入冰箱</button></div></div>{shop.length?groups.map(g=>{const items=shop.filter(x=>x.category===g[0]);return items.length?<div className="shopping-group" key={g[0]}><h3>{g[1]} {g[0]}</h3><div className="shopping-shelf">{items.map(x=><button type="button" className={"shopping-tile "+(x.done?"completed":"")+(active?.id===x.id?" active":"")} key={x.id} onClick={()=>setShop(s=>s.map(y=>y.id===x.id?{...y,done:!y.done}:y))}><span>{x.done?"✓":"○"}</span><strong>{x.name}</strong><small>{x.quantity} 項 · {x.source}</small></button>)}</div></div>:null}):<Empty text="購物清單目前是空的，可以從食譜加入需要採買的食材。" go={()=>{}}/>}</section>{active&&<section className="card food-editor shopping-editor"><div className="section-title"><h3>{active.name}</h3><button className="text-btn" onClick={()=>setActive(null)} type="button">收合</button></div><label className="label">數量</label><div className="quantity-picker"><button type="button" onClick={()=>update({quantity:Math.max(1,active.quantity-1)})}>−</button><strong>{active.quantity}</strong><button type="button" onClick={()=>update({quantity:active.quantity+1})}>＋</button></div><div className="editor-actions"><button className="soft-btn" onClick={()=>update({done:!active.done})} type="button">{active.done?"↩ 取消完成":"✓ 標記完成"}</button><button className="delete-btn" onClick={remove} type="button">刪除項目</button></div></section>}</>}
-function ShoppingVisual(p:{shop:Shop[];setShop:React.Dispatch<React.SetStateAction<Shop[]>>;setFoods:React.Dispatch<React.SetStateAction<Food[]>>}){return <ShoppingVisualLegacy {...p}/>}
-
-function Recipes({foods,add}:{foods:Food[];add:(r:Recipe)=>void}){const[q,setQ]=useState(""),[flavor,setFlavor]=useState("全部"),[onlyReady,setOnlyReady]=useState(false),[selected,setSelected]=useState<Recipe|null>(null);const flavors=["全部",...Array.from(new Set(recipes.map(r=>r.flavor)))];const matches=(r:Recipe)=>{const have=r.ingredients.filter(i=>foods.some(f=>f.name===i.name&&f.quantity>=i.quantity));const miss=r.ingredients.filter(i=>!foods.some(f=>f.name===i.name&&f.quantity>=i.quantity));return{have,miss,ready:!miss.length}};const list=recipes.filter(r=>(flavor==="全部"||r.flavor===flavor)&&(!q||r.name.includes(q)||r.ingredients.some(i=>i.name.includes(q)))&&(!onlyReady||matches(r).ready));if(selected)return <RecipeDetail recipe={selected} foods={foods} add={add} back={()=>setSelected(null)}/>;return <><div className="page-heading"><div className="eyebrow">料理探索</div><h1 className="title">找料理</h1><p className="subtle">搜尋食材，看看現有食材可以做什麼。</p></div><section className="card recipe-toolbar"><input className="input search-box" value={q} onChange={e=>setQ(e.target.value)} placeholder="搜尋料理或食材" /><div className="recent-row">{["番茄","雞蛋","麵"].map(x=><button className="quick-label" type="button" key={x} onClick={()=>setQ(x)}>{x}</button>)}</div><div className="flavor-strip">{flavors.map(x=><button type="button" key={x} className={"flavor-choice "+(flavor===x?"active":"")} onClick={()=>setFlavor(x)}><span>{flavorIcons[x]||"🍽️"}</span><small>{x}</small></button>)}</div><div className="ready-filter-row"><button type="button" className={"recipe-filter ready-filter "+(onlyReady?"active":"")} onClick={()=>setOnlyReady(!onlyReady)}>✓ 食材齊全</button></div></section><section className="recipe-section"><div className="section-title"><h2>{onlyReady?"現有食材可以做什麼":"推薦料理"}</h2><span className="subtle">{list.length} 道</span></div>{list.length?<div className="recipe-grid">{list.map(r=><RecipeCard key={r.id} recipe={r} foods={foods} add={add} open={()=>setSelected(r)}/>)}</div>:<Empty text="找不到符合的料理，試試其他食材或清除篩選條件。" go={()=>{setQ("");setFlavor("全部");setOnlyReady(false)}}/>}</section></>}
-
-function RecipeCard({recipe,foods,add,open}:{recipe:Recipe;foods:Food[];add:(r:Recipe)=>void;open:()=>void}){const m=recipe.ingredients.filter(i=>foods.some(f=>f.name===i.name&&f.quantity>=i.quantity));const miss=recipe.ingredients.filter(i=>!foods.some(f=>f.name===i.name&&f.quantity>=i.quantity));return <article className="card recipe-card"><div className="recipe-emoji">{recipe.emoji}</div><div className="recipe-info"><h3>{recipe.name}</h3><p className="subtle">約 {recipe.minutes} 分鐘 · 入門 · {recipe.flavor}</p><p className="reason">{recipe.note}</p><div className="recipe-ingredients">{recipe.ingredients.map(i=><span className={m.some(x=>x.name===i.name)?"have":"missing"} key={i.name}>{m.some(x=>x.name===i.name)?"✓":"⚠"} {i.name}</span>)}</div><strong className={miss.length?"missing-text":"ready-text"}>{miss.length?"缺少 "+miss.length+" 項食材":"食材齊全"}</strong><div className="actions"><button className="secondary" type="button" onClick={open}>查看食譜</button>{miss.length>0&&<button className="primary small-btn" type="button" onClick={()=>add(recipe)}>加入購物</button>}</div></div></article>}
-
-function RecipeDetail({recipe,foods,add,back}:{recipe:Recipe;foods:Food[];add:(r:Recipe)=>void;back:()=>void}){const[added,setAdded]=useState(false);const miss=recipe.ingredients.filter(i=>!foods.some(f=>f.name===i.name&&f.quantity>=i.quantity));return <><button className="back-btn" type="button" onClick={back}>← 返回料理</button><section className="card detail-panel"><div className="recipe-emoji large">{recipe.emoji}</div><div className="eyebrow">{recipe.flavor}</div><h1 className="title">{recipe.name}</h1><p className="subtle">入門 · 約 {recipe.minutes} 分鐘</p><p className="reason">{recipe.note}</p><h2>食材與份量</h2><div className="detail-ingredients">{recipe.ingredients.map(i=><div key={i.name} className={miss.some(x=>x.name===i.name)?"missing":"have"}><span>{miss.some(x=>x.name===i.name)?"⚠":"✓"} {i.name}</span><b>{i.quantity} {i.unit}</b></div>)}</div>{miss.length>0&&<button className="primary full-btn" type="button" disabled={added} onClick={()=>{add(recipe);setAdded(true)}}>{added?"✓ 已加入購物清單":"加入缺少食材（"+miss.length+" 項）"}</button>}<h2>製作步驟</h2><ol className="steps">{recipe.steps.map((s,i)=><li key={s}><b>{i+1}</b><span>{s}</span></li>)}</ol><a className="watch-btn" href={"https://www.youtube.com/results?search_query="+encodeURIComponent(recipe.name+" 教學")} target="_blank" rel="noreferrer">觀看教學影片 ↗</a></section></>}
-
-function Shopping({shop,setShop,setFoods}:{shop:Shop[];setShop:React.Dispatch<React.SetStateAction<Shop[]>>;setFoods:React.Dispatch<React.SetStateAction<Food[]>>}){const[name,setName]=useState(""),[category,setCategory]=useState("其他"),[unit,setUnit]=useState("份"),[qty,setQty]=useState(1);const pending=shop.filter(x=>!x.done);function addManual(){const n=name.trim();if(!n)return;setShop(s=>{const old=s.find(x=>x.name===n&&!x.done);if(old)return s.map(x=>x.id===old.id?{...x,quantity:x.quantity+qty}:x);return[{id:crypto.randomUUID(),name:n,quantity:qty,unit,category,source:"手動加入",done:false},...s]});setName("");setQty(1)}function moveIn(){const done=shop.filter(x=>x.done);if(!done.length)return;setFoods(fs=>{const next=[...fs];done.forEach(x=>{const old=next.find(f=>f.name===x.name&&!f.done);if(old)old.quantity+=x.quantity;else next.unshift({id:crypto.randomUUID(),name:x.name,quantity:x.quantity,unit:x.unit,expiry:plus(5),category:x.category,done:false})});return next});setShop(s=>s.filter(x=>!x.done))}return <><div className="page-heading"><div className="eyebrow">採買管理</div><h1 className="title">購物清單</h1><p className="subtle">{pending.length?"還有 "+pending.length+" 項待採買":"太好了，沒有待採買項目。"}</p></div><section className="card shopping-form"><div className="section-title"><h2>新增採買</h2></div><div className="category-grid compact-categories">{groups.map(g=><button className={"category-tile "+(category===g[0]?"selected":"")} type="button" key={g[0]} onClick={()=>setCategory(g[0])}><span>{g[1]}</span><strong>{g[0]}</strong></button>)}</div><input className="input" value={name} onChange={e=>setName(e.target.value)} placeholder="輸入或選擇食材名稱" /><div className="row"><div className="quantity-picker"><button type="button" onClick={()=>setQty(Math.max(1,qty-1))}>−</button><strong>{qty}</strong><button type="button" onClick={()=>setQty(qty+1)}>＋</button></div><select className="input" value={unit} onChange={e=>setUnit(e.target.value)}>{units.map(u=><option key={u}>{u}</option>)}</select></div><button className="primary" type="button" disabled={!name.trim()} onClick={addManual}>加入購物清單</button></section><section className="card shopping-list"><div className="section-title"><h2>下次採買</h2><div className="actions"><button className="text-btn" type="button" onClick={()=>setShop(s=>s.filter(x=>!x.done))}>清除已完成</button><button className="primary small-btn" type="button" onClick={moveIn} disabled={!shop.some(x=>x.done)}>移入冰箱</button></div></div>{shop.length?groups.map(g=>{const items=shop.filter(x=>x.category===g[0]);return items.length?<div className="shopping-group" key={g[0]}><h3>{g[1]} {g[0]}</h3>{items.map(x=><div className={"shopping-item "+(x.done?"completed":"")} key={x.id}><button className="check-btn" type="button" onClick={()=>setShop(s=>s.map(y=>y.id===x.id?{...y,done:!y.done}:y))}>{x.done?"✓":"○"}</button><div><strong>{x.name} · {x.quantity} {x.unit}</strong><small>來源：{x.source}</small></div><button className="delete-btn" type="button" onClick={()=>{if(window.confirm("確定刪除這項採買嗎？"))setShop(s=>s.filter(y=>y.id!==x.id))}}>刪除</button></div>)}</div>:null}):<Empty text="購物清單目前是空的，可以從食譜加入需要採買的食材。" go={()=>{}}/>}</section></>}
+const baseRecipes: Recipe[] = [
+  {
+    id: "tomato",
+    name: "番茄炒蛋",
+    emoji: "🍅",
+    flavor: "台式家常",
+    minutes: 15,
+    ingredients: [
+      { name: "雞蛋", quantity: 2, unit: "顆" },
+      { name: "番茄", quantity: 2, unit: "顆" },
+      { name: "青蔥", quantity: 1, unit: "把" },
+    ],
+    note: "酸甜下飯，優先消耗番茄",
+    steps: [
+      "番茄切塊，雞蛋打散。",
+      "蛋炒至半熟盛起。",
+      "炒番茄後加入蛋與青蔥。",
+    ],
+    url: "",
+  },
+  {
+    id: "noodle",
+    name: "蔬菜拌麵",
+    emoji: "🍜",
+    flavor: "麵食料理",
+    minutes: 15,
+    ingredients: [
+      { name: "麵條", quantity: 1, unit: "份" },
+      { name: "青菜", quantity: 1, unit: "把" },
+      { name: "雞蛋", quantity: 1, unit: "顆" },
+    ],
+    note: "一鍋完成，快速解決一餐",
+    steps: ["麵條與青菜燙熟。", "雞蛋煎熟切絲。", "拌入醬油即可。"],
+    url: "",
+  },
+  {
+    id: "soup",
+    name: "番茄蛋花湯",
+    emoji: "🍲",
+    flavor: "清爽湯品",
+    minutes: 18,
+    ingredients: [
+      { name: "番茄", quantity: 2, unit: "顆" },
+      { name: "雞蛋", quantity: 1, unit: "顆" },
+    ],
+    note: "清爽暖胃",
+    steps: ["番茄煮出湯汁。", "加水與調味料煮滾。", "倒入蛋液成蛋花。"],
+    url: "",
+  },
+  {
+    id: "rice",
+    name: "蛋炒飯",
+    emoji: "🍚",
+    flavor: "台式家常",
+    minutes: 20,
+    ingredients: [
+      { name: "雞蛋", quantity: 2, unit: "顆" },
+      { name: "白飯", quantity: 2, unit: "份" },
+      { name: "青蔥", quantity: 1, unit: "把" },
+    ],
+    note: "隔夜飯的好朋友",
+    steps: ["雞蛋打散，青蔥切末。", "熱鍋炒蛋與白飯。", "加入青蔥調味。"],
+    url: "",
+  },
+  {
+    id: "egg",
+    name: "家常蒸蛋",
+    emoji: "🥚",
+    flavor: "清爽料理",
+    minutes: 20,
+    ingredients: [
+      { name: "雞蛋", quantity: 2, unit: "顆" },
+      { name: "醬油", quantity: 1, unit: "份" },
+    ],
+    note: "柔嫩簡單，適合蒸煮",
+    steps: [
+      "蛋與溫水約一比一混合。",
+      "撇去泡沫並蓋上盤子。",
+      "蒸至中心凝固後淋醬油。",
+    ],
+    url: "",
+  },
+  {
+    id: "meatball",
+    name: "貢丸蔬菜麵",
+    emoji: "🍜",
+    flavor: "麵食料理",
+    minutes: 15,
+    ingredients: [
+      { name: "貢丸", quantity: 3, unit: "顆" },
+      { name: "麵條", quantity: 1, unit: "份" },
+      { name: "青菜", quantity: 1, unit: "把" },
+    ],
+    note: "適合快煮鍋的一鍋料理",
+    steps: ["貢丸先煮熟。", "加入麵條煮軟。", "最後加入青菜與調味料。"],
+    url: "",
+  },
+  {
+    id: "toast",
+    name: "起司蛋吐司",
+    emoji: "🥪",
+    flavor: "西式輕食",
+    minutes: 8,
+    ingredients: [
+      { name: "雞蛋", quantity: 1, unit: "顆" },
+      { name: "吐司", quantity: 2, unit: "片" },
+      { name: "起司", quantity: 1, unit: "片" },
+    ],
+    note: "早餐快速完成",
+    steps: ["雞蛋煎熟。", "吐司放起司與煎蛋。", "對切即可享用。"],
+    url: "",
+  },
+  {
+    id: "tofu",
+    name: "玉米豆腐煎餅",
+    emoji: "🥞",
+    flavor: "蔬菜料理",
+    minutes: 18,
+    ingredients: [
+      { name: "豆腐", quantity: 1, unit: "盒" },
+      { name: "玉米", quantity: 1, unit: "份" },
+      { name: "雞蛋", quantity: 1, unit: "顆" },
+    ],
+    note: "外酥內嫩，不需複雜調味",
+    steps: ["豆腐壓乾水分捏碎。", "拌入玉米與蛋液。", "小火煎成兩面金黃。"],
+    url: "",
+  },
+  {
+    id: "chicken",
+    name: "雞胸肉蔬菜盤",
+    emoji: "🥗",
+    flavor: "肉類料理",
+    minutes: 20,
+    ingredients: [
+      { name: "雞胸肉", quantity: 1, unit: "包" },
+      { name: "小黃瓜", quantity: 1, unit: "條" },
+      { name: "番茄", quantity: 1, unit: "顆" },
+    ],
+    note: "清爽少油，適合一人份",
+    steps: ["雞胸肉煎熟切片。", "蔬菜切片。", "全部放在盤中即可。"],
+    url: "",
+  },
+  {
+    id: "onion-egg",
+    name: "洋蔥炒蛋",
+    emoji: "🧅",
+    flavor: "台式家常",
+    minutes: 12,
+    ingredients: [
+      { name: "雞蛋", quantity: 2, unit: "顆" },
+      { name: "洋蔥", quantity: 1, unit: "顆" },
+    ],
+    note: "食材少、步驟簡單",
+    steps: ["洋蔥切絲，蛋打散。", "先炒軟洋蔥。", "加入蛋液炒熟。"],
+    url: "",
+  },
+  {
+    id: "cabbage",
+    name: "清炒高麗菜",
+    emoji: "🥬",
+    flavor: "蔬菜料理",
+    minutes: 10,
+    ingredients: [
+      { name: "高麗菜", quantity: 2, unit: "份" },
+      { name: "醬油", quantity: 1, unit: "份" },
+    ],
+    note: "快速消耗蔬菜",
+    steps: ["高麗菜洗淨切片。", "放入鍋中翻炒。", "加少量醬油拌勻。"],
+    url: "",
+  },
+  {
+    id: "cucumber",
+    name: "涼拌小黃瓜",
+    emoji: "🥒",
+    flavor: "清爽料理",
+    minutes: 8,
+    ingredients: [
+      { name: "小黃瓜", quantity: 2, unit: "條" },
+      { name: "醬油", quantity: 1, unit: "份" },
+    ],
+    note: "不用開火，炎熱天氣很適合",
+    steps: ["小黃瓜拍裂切段。", "加入醬油拌勻。", "冷藏十分鐘。"],
+    url: "",
+  },
+  {
+    id: "curry",
+    name: "簡易咖哩飯",
+    emoji: "🍛",
+    flavor: "日式風味",
+    minutes: 35,
+    ingredients: [
+      { name: "雞胸肉", quantity: 1, unit: "包" },
+      { name: "洋蔥", quantity: 1, unit: "顆" },
+      { name: "咖哩塊", quantity: 1, unit: "盒" },
+      { name: "白飯", quantity: 2, unit: "份" },
+    ],
+    note: "一次煮好幾餐",
+    steps: ["肉與洋蔥切塊。", "炒香後加水煮軟。", "放咖哩塊淋白飯。"],
+    url: "",
+  },
+  {
+    id: "soy-noodle",
+    name: "醬油乾麵",
+    emoji: "🍜",
+    flavor: "麵食料理",
+    minutes: 10,
+    ingredients: [
+      { name: "麵條", quantity: 1, unit: "份" },
+      { name: "醬油", quantity: 1, unit: "份" },
+    ],
+    note: "食材不多時的安心選擇",
+    steps: ["麵條煮熟瀝乾。", "加入醬油拌勻。", "可加青蔥或雞蛋。"],
+    url: "",
+  },
+  {
+    id: "apple-yogurt",
+    name: "蘋果優格杯",
+    emoji: "🍎",
+    flavor: "早餐甜點",
+    minutes: 5,
+    ingredients: [
+      { name: "蘋果", quantity: 1, unit: "顆" },
+      { name: "優格", quantity: 1, unit: "份" },
+    ],
+    note: "不用開火，五分鐘完成",
+    steps: ["蘋果切丁。", "放入優格中。", "拌勻即可。"],
+    url: "",
+  },
+  {
+    id: "milk-oat",
+    name: "牛奶燕麥粥",
+    emoji: "🥣",
+    flavor: "早餐甜點",
+    minutes: 10,
+    ingredients: [
+      { name: "牛奶", quantity: 1, unit: "份" },
+      { name: "燕麥", quantity: 1, unit: "份" },
+    ],
+    note: "溫和飽足，適合早餐",
+    steps: ["牛奶加熱。", "加入燕麥小火煮。", "煮至濃稠即可。"],
+    url: "",
+  },
+  {
+    id: "pork-cabbage",
+    name: "高麗菜炒豬肉",
+    emoji: "🥩",
+    flavor: "肉類料理",
+    minutes: 20,
+    ingredients: [
+      { name: "豬肉", quantity: 1, unit: "份" },
+      { name: "高麗菜", quantity: 2, unit: "份" },
+    ],
+    note: "肉和菜一起完成",
+    steps: ["豬肉切片。", "先炒豬肉至變色。", "加入高麗菜炒軟。"],
+    url: "",
+  },
+];
+const recipeSeeds: {
+  flavor: string;
+  emoji: string;
+  names: string[];
+  minutes: number;
+  ingredients: Ingredient[];
+}[] = [
+  {
+    flavor: "台式家常",
+    emoji: "🍳",
+    names: [
+      "蔥花煎蛋",
+      "洋蔥炒肉",
+      "家常三杯豆腐",
+      "番茄肉醬",
+      "蒜香豬肉",
+      "高麗菜炒蛋",
+      "醬油雞丁",
+      "玉米炒蛋",
+      "青菜炒肉",
+      "家常滷味",
+    ],
+    minutes: 20,
+    ingredients: [
+      { name: "雞蛋", quantity: 1, unit: "顆" },
+      { name: "青蔥", quantity: 1, unit: "把" },
+    ],
+  },
+  {
+    flavor: "西式輕食",
+    emoji: "🥪",
+    names: [
+      "蔬菜沙拉",
+      "火腿起司吐司",
+      "番茄蛋沙拉",
+      "奶油玉米",
+      "優格水果杯",
+      "雞肉三明治",
+      "鮪魚吐司",
+      "起司焗蔬菜",
+      "蔬菜蛋捲",
+      "早餐法式吐司",
+    ],
+    minutes: 12,
+    ingredients: [
+      { name: "吐司", quantity: 2, unit: "片" },
+      { name: "起司", quantity: 1, unit: "片" },
+    ],
+  },
+  {
+    flavor: "清爽湯品",
+    emoji: "🍲",
+    names: [
+      "青菜豆腐湯",
+      "玉米蛋花湯",
+      "洋蔥清湯",
+      "蔬菜味噌湯",
+      "金針菇蛋花湯",
+      "蘿蔔清湯",
+      "番茄蔬菜湯",
+      "雞肉蔬菜湯",
+      "紫菜豆腐湯",
+      "清爽貢丸湯",
+    ],
+    minutes: 20,
+    ingredients: [
+      { name: "青菜", quantity: 1, unit: "把" },
+      { name: "豆腐", quantity: 1, unit: "盒" },
+    ],
+  },
+  {
+    flavor: "麵食料理",
+    emoji: "🍜",
+    names: [
+      "番茄湯麵",
+      "貢丸蔬菜麵",
+      "麻醬乾麵",
+      "青菜蛋麵",
+      "泡菜拌麵",
+      "雞絲拌麵",
+      "蔥油拌麵",
+      "豆腐湯麵",
+      "海鮮麵",
+      "咖哩拌麵",
+    ],
+    minutes: 15,
+    ingredients: [
+      { name: "麵條", quantity: 1, unit: "份" },
+      { name: "青菜", quantity: 1, unit: "把" },
+    ],
+  },
+  {
+    flavor: "日式風味",
+    emoji: "🍛",
+    names: [
+      "親子丼",
+      "日式炒烏龍",
+      "照燒雞肉",
+      "日式咖哩",
+      "味噌豆腐",
+      "玉子燒",
+      "日式豬肉丼",
+      "和風蔬菜",
+      "日式炒飯",
+      "茶泡飯",
+    ],
+    minutes: 25,
+    ingredients: [
+      { name: "雞蛋", quantity: 1, unit: "顆" },
+      { name: "洋蔥", quantity: 1, unit: "顆" },
+    ],
+  },
+  {
+    flavor: "蔬菜料理",
+    emoji: "🥬",
+    names: [
+      "蒜炒青菜",
+      "清炒高麗菜",
+      "涼拌小黃瓜",
+      "番茄拌洋蔥",
+      "玉米炒蛋",
+      "金針菇炒蛋",
+      "蔬菜煎餅",
+      "胡椒杏鮑菇",
+      "紅蘿蔔炒蛋",
+      "蔬菜豆腐",
+    ],
+    minutes: 15,
+    ingredients: [
+      { name: "青菜", quantity: 1, unit: "把" },
+      { name: "醬油", quantity: 1, unit: "份" },
+    ],
+  },
+  {
+    flavor: "早餐甜點",
+    emoji: "🥞",
+    names: [
+      "香蕉燕麥",
+      "蘋果優格杯",
+      "牛奶燕麥粥",
+      "水果吐司",
+      "起司蛋餅",
+      "蜂蜜香蕉",
+      "優格水果碗",
+      "玉米蛋餅",
+      "奶油吐司",
+      "蘋果煎餅",
+    ],
+    minutes: 10,
+    ingredients: [
+      { name: "雞蛋", quantity: 1, unit: "顆" },
+      { name: "牛奶", quantity: 1, unit: "份" },
+    ],
+  },
+  {
+    flavor: "肉類料理",
+    emoji: "🥩",
+    names: [
+      "洋蔥牛肉片",
+      "高麗菜炒豬肉",
+      "香腸炒蛋",
+      "雞胸肉蔬菜盤",
+      "貢丸煎蛋",
+      "豬肉蔥蛋",
+      "黑胡椒雞丁",
+      "蒜香豬排",
+      "牛肉蔬菜炒",
+      "雞肉拌飯",
+    ],
+    minutes: 25,
+    ingredients: [
+      { name: "豬肉", quantity: 1, unit: "份" },
+      { name: "洋蔥", quantity: 1, unit: "顆" },
+    ],
+  },
+];
+const generatedRecipes = recipeSeeds.flatMap((seed) =>
+  seed.names.map((name, index) => ({
+    id: `generated-${seed.flavor}-${index}`,
+    name,
+    emoji: seed.emoji,
+    flavor: seed.flavor,
+    minutes: seed.minutes + (index % 3) * 3,
+    ingredients: seed.ingredients,
+    note: "可以依照冰箱現有食材調整",
+    steps: ["先準備並清洗食材。", "依火候煮熟或炒香。", "最後調味即可享用。"],
+    url: "",
+  })),
+);
+const recipes: Recipe[] = [...baseRecipes, ...generatedRecipes];
+function recipeIcon(name: string, fallback: string) {
+  if (/湯|湯麵|味噌|清湯/.test(name)) return "🍲";
+  if (/麵|烏龍|乾麵/.test(name)) return "🍜";
+  if (/吐司|三明治|沙拉/.test(name)) return "🥪";
+  if (/咖哩/.test(name)) return "🍛";
+  if (/牛奶|燕麥|優格|水果|香蕉|蘋果|蜂蜜|法式/.test(name)) return "🍎";
+  if (/蛋|玉子|蛋餅|煎蛋/.test(name)) return "🍳";
+  if (/飯|丼|炒飯|茶泡飯/.test(name)) return "🍚";
+  if (/肉|雞|豬|牛|排|香腸|貢丸/.test(name)) return "🥩";
+  if (/蔬菜|青菜|高麗菜|小黃瓜|菇|蘿蔔/.test(name)) return "🥬";
+  return fallback;
+}
+const today = () => new Date().toISOString().slice(0, 10),
+  future = (n: number) => {
+    const d = new Date();
+    d.setDate(d.getDate() + n);
+    return d.toISOString().slice(0, 10);
+  },
+  left = (d: string) =>
+    Math.ceil((new Date(d + "T23:59:59").getTime() - Date.now()) / 86400000),
+  label = (d: string) =>
+    left(d) < 0
+      ? "已過期"
+      : left(d) === 0
+        ? "今天到期"
+        : "還有 " + left(d) + " 天";
+function read<T>(key: string, fallback: T): T {
+  try {
+    const raw = localStorage.getItem(key);
+    return raw ? (JSON.parse(raw) as T) : fallback;
+  } catch {
+    return fallback;
+  }
+}
+// @ts-ignore The existing compact component accepts the callback prop at runtime.
+export default function Home() {
+  const [v, setV] = useState<View>("home"),
+    [foods, setFoods] = useState<Food[]>([]),
+    [shop, setShop] = useState<Shop[]>([]),
+    [notice, setNotice] = useState("");
+  useEffect(() => {
+    setFoods(read(FK, []));
+    setShop(read(SK, []));
+  }, []);
+  useEffect(() => {
+    localStorage.setItem(FK, JSON.stringify(foods));
+    localStorage.setItem(SK, JSON.stringify(shop));
+  }, [foods, shop]);
+  function add(r: Recipe) {
+    const missing = r.ingredients.filter((i) => {
+      const f = foods.find((x) => !x.done && x.name === i.name);
+      return !f || f.quantity < i.quantity;
+    });
+    setShop((old) => {
+      const n = [...old];
+      missing.forEach((i) => {
+        const f = n.find((x) => !x.done && x.name === i.name);
+        if (f) f.quantity = Math.max(f.quantity, i.quantity);
+        else
+          n.push({
+            id: crypto.randomUUID(),
+            name: i.name,
+            quantity: i.quantity,
+            unit: i.unit,
+            category:
+              categories.find((c) => catalog[c].includes(i.name)) || "其他",
+            source: r.name,
+            done: false,
+          });
+      });
+      return n;
+    });
+    setNotice("已加入缺少食材");
+  }
+  return (
+    <main className="shell">
+      <header className="topbar">
+        <button className="brand" onClick={() => setV("home")} type="button">
+          <span className="logo">🧊</span>
+          <span>冰箱管家</span>
+        </button>
+        <span className="eyebrow">
+          {v === "home"
+            ? "GOOD TO EAT"
+            : v === "fridge"
+              ? "MY FRIDGE"
+              : v === "recipes"
+                ? "FIND FOOD"
+                : "SHOPPING"}
+        </span>
+      </header>
+      {v === "home" && <ChatHome foods={foods} add={add} />}{" "}
+      {v === "fridge" && <Fridge foods={foods} setFoods={setFoods} />}{" "}
+      {v === "recipes" && <RecipePage foods={foods} addMissing={add} />}{" "}
+      {v === "shopping" && (
+        <Shopping shop={shop} setShop={setShop} setFoods={setFoods} />
+      )}
+      <nav className="bottom-nav">
+        <Nav a={v === "home"} f={() => setV("home")} i="🏠" t="首頁" />
+        <Nav a={v === "fridge"} f={() => setV("fridge")} i="🧊" t="我的冰箱" />
+        <Nav a={v === "recipes"} f={() => setV("recipes")} i="🍳" t="找料理" />
+        <Nav
+          a={v === "shopping"}
+          f={() => setV("shopping")}
+          i="🛒"
+          t={`購物 ${shop.filter((x) => !x.done).length}`}
+        />
+      </nav>
+      {notice && <div className="toast success">✓ {notice}</div>}
+    </main>
+  );
+}
+function Nav(p: { a: boolean; f: () => void; i: string; t: string }) {
+  return (
+    <button
+      className={`nav-item ${p.a ? "active" : ""}`}
+      onClick={p.f}
+      type="button"
+    >
+      {p.i} {p.t}
+    </button>
+  );
+}
+function ChatHome({ foods, add }: { foods: Food[]; add: (r: Recipe) => void }) {
+  const [input, setInput] = useState(""),
+    [busy, setBusy] = useState(false),
+    [chat, setChat] = useState<Chat[]>([]);
+  async function ask(q = input) {
+    if (!q.trim() || busy) return;
+    setInput("");
+    setBusy(true);
+    setChat((h) => [...h, { role: "user", text: q }]);
+    try {
+      const r = await fetch("/api/assistant", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message: q, foods, recipes, history: chat }),
+      });
+      if (!r.ok) throw new Error();
+      const d = (await r.json()) as Reply;
+      setChat((h) => [...h, { role: "assistant", text: d.message, reply: d }]);
+    } catch {
+      setChat((h) => [
+        ...h,
+        {
+          role: "assistant",
+          text: "我現在暫時連不上料理助手，你仍可以問我料理、食材或煮飯問題。",
+          error: true,
+          retry: q,
+        },
+      ]);
+    } finally {
+      setBusy(false);
+    }
+  }
+  return (
+    <section className="ai-hero">
+      <div className="eyebrow">AI 冰箱管家</div>
+      <h1 className="title">想聊什麼都可以</h1>
+      <div className="ai-chat">
+        <div className="ai-message assistant">
+          <span className="ai-avatar">✦</span>
+          <div>
+            <strong>你好！我是你的冰箱管家</strong>
+            <p>早安！想吃什麼、怎麼切菜，或煮飯卡住了，都可以問我。</p>
+          </div>
+        </div>
+        {chat.map((x, i) => (
+          <div className={`chat-entry ${x.role}`} key={i}>
+            <div className={`ai-message ${x.role}`}>
+              <span className="ai-avatar">
+                {x.role === "user" ? "你" : "✦"}
+              </span>
+              <div>{x.text}</div>
+            </div>
+            {x.error && (
+              <button
+                className="retry-btn"
+                onClick={() => ask(x.retry || "")}
+                type="button"
+              >
+                ↻ 重新嘗試
+              </button>
+            )}
+            {x.reply && <AIResult data={x.reply} add={add} />}
+          </div>
+        ))}
+        {busy && (
+          <div className="ai-loading" role="status">
+            正在想一個適合你的回答…
+          </div>
+        )}
+      </div>
+      <form
+        className="ai-input-row"
+        onSubmit={(e) => {
+          e.preventDefault();
+          ask();
+        }}
+      >
+        <input
+          className="input"
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          placeholder="輸入你想聊的事，料理問題也可以…"
+          disabled={busy}
+        />
+        <button
+          className="primary ai-send"
+          disabled={busy || !input.trim()}
+          type="submit"
+        >
+          {busy ? "處理中…" : "送出"}
+        </button>
+      </form>
+      {chat.length === 0 && (
+        <div className="quick-questions">
+          <div className="section-title">
+            <h2>試著問我</h2>
+          </div>
+          <div className="quick-question-grid">
+            {[
+              "今天吃什麼？",
+              "消耗快過期食材",
+              "15 分鐘內能做什麼？",
+              "今天不想洗太多鍋",
+              "用現有食材就好",
+            ].map((x) => (
+              <button key={x} onClick={() => ask(x)} type="button">
+                {x}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+    </section>
+  );
+}
+function AIResult({ data, add }: { data: Reply; add: (r: Recipe) => void }) {
+  const r = data.generatedRecipe || recipes.find((x) => x.id === data.recipeId);
+  if (!r && !data.reason?.length && !data.suggestions?.length) return null;
+  return (
+    <div className="ai-result">
+      {r && (
+        <div className="ai-result-title">
+          <span>{data.emoji || r.emoji}</span>
+          <div>
+            <strong>{data.recipeName || r.name}</strong>
+            {data.cookTime && <small>約 {data.cookTime} 分鐘</small>}
+          </div>
+        </div>
+      )}
+      {data.reason?.map((x) => (
+        <div className="ai-reasons" key={x}>
+          💡 {x}
+        </div>
+      ))}
+      {data.availableIngredients?.length > 0 && (
+        <p>你已有：{data.availableIngredients.join("、")}</p>
+      )}
+      {data.missingIngredients?.length > 0 && (
+        <p>還缺少：{data.missingIngredients.join("、")}</p>
+      )}
+      {data.suggestions?.map((x) => (
+        <p key={x}>✨ {x}</p>
+      ))}
+      {r && data.missingIngredients?.length > 0 && (
+        <button className="soft-btn" onClick={() => add(r)} type="button">
+          加入缺少食材
+        </button>
+      )}
+    </div>
+  );
+}
+function Fridge({
+  foods,
+  setFoods,
+}: {
+  foods: Food[];
+  setFoods: React.Dispatch<React.SetStateAction<Food[]>>;
+}) {
+  const [open, setOpen] = useState(false),
+    [selected, setSelected] = useState("蔬菜"),
+    [picked, setPicked] = useState(""),
+    [custom, setCustom] = useState(""),
+    [unit, setUnit] = useState("份"),
+    [qty, setQty] = useState(1),
+    [expiry, setExpiry] = useState(future(5)),
+    [search, setSearch] = useState(""),
+    [soon, setSoon] = useState(false),
+    [customItems, setCustomItems] = useState<Record<string, string[]>>({});
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(CUSTOM_KEY);
+      if (saved) setCustomItems(JSON.parse(saved));
+    } catch {}
+  }, []);
+  useEffect(() => {
+    localStorage.setItem(CUSTOM_KEY, JSON.stringify(customItems));
+  }, [customItems]);
+  useEffect(() => {
+    if (picked) {
+      const d = defaults(picked);
+      setUnit(d.unit);
+      setExpiry(d.expiry);
+    }
+  }, [picked]);
+  const list = foods.filter(
+    (f) =>
+      !f.done &&
+      (!search || f.name.includes(search)) &&
+      (!soon || left(f.expiry) <= 3),
+  );
+  function addFood() {
+    const name = (picked || custom).trim();
+    if (!name) return;
+    if (custom && !catalog[selected].includes(name))
+      setCustomItems((old) => ({
+        ...old,
+        [selected]: Array.from(new Set([...(old[selected] || []), name])),
+      }));
+    const preset = picked ? defaults(picked) : null;
+    const finalUnit = preset?.unit || unit;
+    const finalExpiry = preset?.expiry || expiry;
+    setFoods((old) => {
+      const found = old.find((f) => !f.done && f.name === name);
+      if (found)
+        return old.map((f) =>
+          f.id === found.id
+            ? {
+                ...f,
+                quantity: f.quantity + qty,
+                unit: finalUnit,
+                expiry: f.expiry < finalExpiry ? f.expiry : finalExpiry,
+              }
+            : f,
+        );
+      return [
+        {
+          id: crypto.randomUUID(),
+          name,
+          quantity: qty,
+          unit: finalUnit,
+          expiry: finalExpiry,
+          category: selected,
+          done: false,
+        },
+        ...old,
+      ];
+    });
+    setPicked("");
+    setCustom("");
+    setQty(1);
+    setOpen(false);
+  }
+  return (
+    <>
+      <div className="page-heading">
+        <div className="eyebrow">庫存管理</div>
+        <h1 className="title">我的冰箱</h1>
+      </div>
+      <section className="card inventory-card">
+        <div className="section-title">
+          <h2>目前庫存 ({list.length})</h2>
+          <button
+            className="primary small-btn"
+            onClick={() => setOpen(!open)}
+            type="button"
+          >
+            {open ? "收起新增" : "＋ 新增食材"}
+          </button>
+        </div>
+        <input
+          className="input inventory-search"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="搜尋庫存食材"
+        />
+        <button
+          className="filter-button"
+          onClick={() => setSoon(!soon)}
+          type="button"
+        >
+          {soon ? "顯示全部" : "只看即將到期"}
+        </button>
+        <div className="fridge-visual">
+          {categories.map((c) => (
+            <div className="fridge-shelf" key={c}>
+              <div className="fridge-category">
+                {icons[c]} {c}
+              </div>
+              {list
+                .filter((f) => f.category === c)
+                .map((f) => (
+                  <button
+                    className="fridge-food"
+                    key={f.id}
+                    onClick={() =>
+                      setFoods((old) =>
+                        old.map((x) =>
+                          x.id === f.id
+                            ? { ...x, quantity: x.quantity + 1 }
+                            : x,
+                        ),
+                      )
+                    }
+                    type="button"
+                  >
+                    <span>{icons[c]}</span>
+                    <strong>{f.name}</strong>
+                    <small>
+                      {f.quantity} {f.unit} · {label(f.expiry)}
+                    </small>
+                  </button>
+                ))}
+            </div>
+          ))}
+        </div>
+      </section>
+      {open && (
+        <section className="card form-card">
+          <h2>新增食材</h2>
+          <div className="category-grid">
+            {categories.map((c) => (
+              <button
+                className={`category-tile ${selected === c ? "selected" : ""}`}
+                key={c}
+                onClick={() => {
+                  setSelected(c);
+                  setPicked("");
+                }}
+                type="button"
+              >
+                <span>{icons[c]}</span>
+                <strong>{c}</strong>
+                <small>
+                  {catalog[c].length + (customItems[c]?.length || 0)} 種
+                </small>
+              </button>
+            ))}
+          </div>
+          <div className="ingredient-grid compact-grid">
+            {[...catalog[selected], ...(customItems[selected] || [])].map(
+              (x) => (
+                <button
+                  className={`ingredient-btn ${picked === x ? "chosen" : ""}`}
+                  key={x}
+                  onClick={() => {
+                    setPicked(x);
+                    setCustom("");
+                  }}
+                  onDoubleClick={() => {
+                    const next = window.prompt("修改常用食材名稱", x)?.trim();
+                    if (next && next !== x)
+                      setCustomItems((old) => ({
+                        ...old,
+                        [selected]: Array.from(
+                          new Set([...(old[selected] || []), next]),
+                        ),
+                      }));
+                  }}
+                  title="雙擊可編輯食材名稱"
+                  type="button"
+                >
+                  {x} <span className="preset-edit-hint">✎</span>
+                </button>
+              ),
+            )}
+            <button
+              className="ingredient-btn free-btn"
+              onClick={() => setPicked("")}
+              type="button"
+            >
+              ＋ 自由輸入
+            </button>
+            {(customItems[selected] || []).length > 0 && (
+              <button
+                className="ingredient-btn edit-preset-btn"
+                onClick={() => {
+                  const oldName = window.prompt(
+                    "要修改哪個常用食材？",
+                    customItems[selected][0],
+                  );
+                  if (!oldName || !customItems[selected].includes(oldName))
+                    return;
+                  const next = window
+                    .prompt("請輸入新的食材名稱", oldName)
+                    ?.trim();
+                  if (next && next !== oldName)
+                    setCustomItems((old) => ({
+                      ...old,
+                      [selected]: old[selected].map((item) =>
+                        item === oldName ? next : item,
+                      ),
+                    }));
+                }}
+                type="button"
+              >
+                ✎ 編輯常用食材
+              </button>
+            )}
+          </div>
+          <input
+            className="input"
+            value={custom}
+            onChange={(e) => {
+              setCustom(e.target.value);
+              setPicked("");
+            }}
+            placeholder="自由輸入食材名稱"
+          />
+          <div className="row">
+            <select
+              className="input"
+              value={unit}
+              onChange={(e) => setUnit(e.target.value)}
+            >
+              {units.map((x) => (
+                <option key={x}>{x}</option>
+              ))}
+            </select>
+            <div className="quantity-picker">
+              <button
+                onClick={() => setQty(Math.max(1, qty - 1))}
+                type="button"
+              >
+                −
+              </button>
+              <strong>{qty}</strong>
+              <button onClick={() => setQty(qty + 1)} type="button">
+                ＋
+              </button>
+            </div>
+          </div>
+          <label className="label">到期日</label>
+          <input
+            className="input"
+            type="date"
+            min={today()}
+            value={expiry}
+            onChange={(e) => setExpiry(e.target.value)}
+          />
+          <button
+            className="primary"
+            disabled={!picked && !custom.trim()}
+            onClick={addFood}
+            type="button"
+          >
+            確認加入冰箱
+          </button>
+        </section>
+      )}
+    </>
+  );
+}
+function RecipePage({
+  foods,
+  addMissing,
+}: {
+  foods: Food[];
+  addMissing: (r: Recipe) => void;
+}) {
+  const [q, setQ] = useState(""),
+    [flavor, setFlavor] = useState("全部"),
+    [selected, setSelected] = useState<Recipe | null>(null),
+    [onlyAvailable, setOnlyAvailable] = useState(false);
+  const list = recipes.filter(
+    (r) =>
+      (flavor === "全部" || r.flavor === flavor) &&
+      (!onlyAvailable ||
+        r.ingredients.every((i) =>
+          foods.some(
+            (f) => !f.done && f.name === i.name && f.quantity >= i.quantity,
+          ),
+        )) &&
+      (!q ||
+        r.name.includes(q) ||
+        r.ingredients.some((i) => i.name.includes(q))),
+  );
+  if (selected)
+    return (
+      <section className="card detail-panel">
+        <button
+          className="back-btn"
+          onClick={() => setSelected(null)}
+          type="button"
+        >
+          ← 返回料理
+        </button>
+        <div className="recipe-emoji large">{selected.emoji}</div>
+        <h1 className="title">{selected.name}</h1>
+        <p className="subtle">
+          約 {selected.minutes} 分鐘 · {selected.flavor}
+        </p>
+        <h2>食材與份量</h2>
+        {selected.ingredients.map((i) => (
+          <p key={i.name}>
+            • {i.name} {i.quantity}
+            {i.unit}
+          </p>
+        ))}
+        <h2>製作步驟</h2>
+        <ol>
+          {selected.steps.map((x) => (
+            <li key={x}>{x}</li>
+          ))}
+        </ol>
+        <button
+          className="primary"
+          onClick={() => addMissing(selected)}
+          type="button"
+        >
+          缺少食材加入購物
+        </button>
+      </section>
+    );
+  return (
+    <>
+      <div className="page-heading">
+        <div className="eyebrow">料理探索</div>
+        <h1 className="title">找料理</h1>
+      </div>
+      <section className="card recipe-toolbar">
+        <input
+          className="input search-box"
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+          placeholder="搜尋料理或食材"
+        />
+        <div className="flavor-strip">
+          {flavors.map((f) => (
+            <button
+              className={`flavor-choice ${flavor === f ? "active" : ""}`}
+              key={f}
+              onClick={() => setFlavor(f)}
+              type="button"
+            >
+              <span>{flavorIcons[f] || "🍽️"}</span> {f}
+            </button>
+          ))}
+        </div>
+        <button
+          className={`filter-button ${onlyAvailable ? "active" : ""}`}
+          onClick={() => setOnlyAvailable(!onlyAvailable)}
+          type="button"
+        >
+          {onlyAvailable ? "顯示全部料理" : "🧊 已有食材"}
+        </button>
+      </section>
+      <section className="recipe-section">
+        <div className="section-title">
+          <h2>推薦料理</h2>
+          <span>{list.length} 道</span>
+        </div>
+        <div className="recipe-grid">
+          {list.map((r) => (
+            <article className="card recipe-card" key={r.id}>
+              <div className="recipe-emoji">{recipeIcon(r.name, r.emoji)}</div>
+              <div className="recipe-info">
+                <h3>{r.name}</h3>
+                <p className="subtle">
+                  約 {r.minutes} 分鐘 · {r.flavor}
+                </p>
+                <p>{r.note}</p>
+                <button
+                  className="secondary"
+                  onClick={() => setSelected(r)}
+                  type="button"
+                >
+                  查看食譜
+                </button>
+              </div>
+            </article>
+          ))}
+        </div>
+      </section>
+    </>
+  );
+}
+function Shopping({
+  shop,
+  setShop,
+  setFoods,
+}: {
+  shop: Shop[];
+  setShop: React.Dispatch<React.SetStateAction<Shop[]>>;
+  setFoods: React.Dispatch<React.SetStateAction<Food[]>>;
+}) {
+  const [open, setOpen] = useState(false),
+    [selected, setSelected] = useState("蔬菜"),
+    [picked, setPicked] = useState(""),
+    [custom, setCustom] = useState(""),
+    [unit, setUnit] = useState("份"),
+    [qty, setQty] = useState(1),
+    [editing, setEditing] = useState<Shop | null>(null),
+    [customItems, setCustomItems] = useState<Record<string, string[]>>({}),
+    [hiddenItems, setHiddenItems] = useState<Record<string, string[]>>({});
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(CUSTOM_KEY);
+      if (saved) setCustomItems(JSON.parse(saved));
+      const hidden = localStorage.getItem(`${CUSTOM_KEY}-hidden`);
+      if (hidden) setHiddenItems(JSON.parse(hidden));
+    } catch {}
+  }, []);
+  useEffect(() => {
+    localStorage.setItem(CUSTOM_KEY, JSON.stringify(customItems));
+  }, [customItems]);
+  useEffect(() => {
+    localStorage.setItem(`${CUSTOM_KEY}-hidden`, JSON.stringify(hiddenItems));
+  }, [hiddenItems]);
+  useEffect(() => {
+    if (picked) setUnit(defaults(picked).unit);
+  }, [picked]);
+  const add = () => {
+    const name = (picked || custom).trim();
+    if (!name) return;
+    if (custom && !catalog[selected].includes(name))
+      setCustomItems((old) => ({
+        ...old,
+        [selected]: Array.from(new Set([...(old[selected] || []), name])),
+      }));
+    setShop((old) => {
+      if (editing)
+        return old.map((x) =>
+          x.id === editing.id
+            ? { ...x, name, quantity: qty, unit, category: selected }
+            : x,
+        );
+      const found = old.find((x) => !x.done && x.name === name);
+      if (found)
+        return old.map((x) =>
+          x.id === found.id ? { ...x, quantity: x.quantity + qty } : x,
+        );
+      return [
+        {
+          id: crypto.randomUUID(),
+          name,
+          quantity: qty,
+          unit,
+          category: selected,
+          source: "手動加入",
+          done: false,
+        },
+        ...old,
+      ];
+    });
+    setPicked("");
+    setCustom("");
+    setQty(1);
+    setEditing(null);
+    setOpen(false);
+  };
+  const edit = (item: Shop) => {
+    setEditing(item);
+    setSelected(item.category);
+    setPicked(catalog[item.category]?.includes(item.name) ? item.name : "");
+    setCustom(catalog[item.category]?.includes(item.name) ? "" : item.name);
+    setUnit(item.unit);
+    setQty(item.quantity);
+    setOpen(true);
+  };
+  const move = () => {
+    const done = shop.filter((x) => x.done);
+    setFoods((old) => [
+      ...old,
+      ...done.map((x) => ({
+        id: crypto.randomUUID(),
+        name: x.name,
+        quantity: x.quantity,
+        unit: x.unit,
+        expiry: future(5),
+        category: x.category,
+        done: false,
+      })),
+    ]);
+    setShop(shop.filter((x) => !x.done));
+  };
+  return (
+    <>
+      <div className="page-heading">
+        <div className="eyebrow">採買管理</div>
+        <h1 className="title">購物清單</h1>
+      </div>
+      <section className="card shopping-list">
+        <div className="section-title">
+          <h2>下次採買</h2>
+          <div>
+            <button
+              className="primary small-btn"
+              onClick={() => setOpen(!open)}
+              type="button"
+            >
+              {open ? "收起新增" : "＋ 新增採買"}
+            </button>
+            <button
+              className="soft-btn"
+              disabled={!shop.some((x) => x.done)}
+              onClick={move}
+              type="button"
+            >
+              移入冰箱
+            </button>
+          </div>
+        </div>
+        {shop.length ? (
+          shop.map((x) => (
+            <div className="shopping-row" key={x.id}>
+              <button
+                className={`shopping-tile ${x.done ? "completed" : ""}`}
+                onClick={() =>
+                  setShop(
+                    shop.map((y) =>
+                      y.id === x.id ? { ...y, done: !y.done } : y,
+                    ),
+                  )
+                }
+                type="button"
+              >
+                {x.done ? "✓" : "○"} {x.name} · {x.quantity} {x.unit}{" "}
+                <small>{x.source}</small>
+              </button>
+              <button
+                className="edit-btn"
+                onClick={() => edit(x)}
+                type="button"
+              >
+                編輯
+              </button>
+            </div>
+          ))
+        ) : (
+          <p>購物清單目前是空的。</p>
+        )}
+      </section>
+      {open && (
+        <section className="card shopping-form">
+          <h2>{editing ? "編輯採買" : "新增採買"}</h2>
+          <div className="category-grid">
+            {categories.map((c) => (
+              <button
+                className={`category-tile ${selected === c ? "selected" : ""}`}
+                key={c}
+                onClick={() => {
+                  setSelected(c);
+                  setPicked("");
+                  setCustom("");
+                }}
+                type="button"
+              >
+                <span>{icons[c]}</span>
+                <strong>{c}</strong>
+                <small>
+                  {catalog[c].length + (customItems[c]?.length || 0)} 種
+                </small>
+              </button>
+            ))}
+          </div>
+          <div className="ingredient-grid compact-grid">
+            {[...catalog[selected], ...(customItems[selected] || [])]
+              .filter((x) => !(hiddenItems[selected] || []).includes(x))
+              .map((x) => (
+                <button
+                  className={`ingredient-btn ${picked === x ? "chosen" : ""}`}
+                  key={x}
+                  onClick={() => {
+                    setPicked(x);
+                    setCustom("");
+                  }}
+                  onDoubleClick={() => {
+                    const next = window.prompt("修改食材名稱", x)?.trim();
+                    if (!next || next === x) return;
+                    setCustomItems((old) => ({
+                      ...old,
+                      [selected]: Array.from(
+                        new Set([...(old[selected] || []), next]),
+                      ),
+                    }));
+                    if (catalog[selected].includes(x))
+                      setHiddenItems((old) => ({
+                        ...old,
+                        [selected]: [...(old[selected] || []), x],
+                      }));
+                    else
+                      setCustomItems((old) => ({
+                        ...old,
+                        [selected]: (old[selected] || [])
+                          .filter((item) => item !== x)
+                          .concat(next),
+                      }));
+                  }}
+                  title="雙擊可編輯食材名稱"
+                  type="button"
+                >
+                  {x} <span className="preset-edit-hint">✎</span>
+                </button>
+              ))}
+            <button
+              className="ingredient-btn free-btn"
+              onClick={() => setPicked("")}
+              type="button"
+            >
+              ＋ 自由輸入
+            </button>
+          </div>
+          <input
+            className="input"
+            value={custom}
+            onChange={(e) => {
+              setCustom(e.target.value);
+              setPicked("");
+            }}
+            placeholder="輸入或選擇食材名稱"
+          />
+          <div className="row">
+            <select
+              className="input"
+              value={selected}
+              onChange={(e) => setSelected(e.target.value)}
+            >
+              {categories.map((x) => (
+                <option key={x}>{x}</option>
+              ))}
+            </select>
+            <select
+              className="input"
+              value={unit}
+              onChange={(e) => setUnit(e.target.value)}
+            >
+              {units.map((x) => (
+                <option key={x}>{x}</option>
+              ))}
+            </select>
+          </div>
+          <div className="quantity-picker">
+            <button onClick={() => setQty(Math.max(1, qty - 1))} type="button">
+              −
+            </button>
+            <strong>{qty}</strong>
+            <button onClick={() => setQty(qty + 1)} type="button">
+              ＋
+            </button>
+          </div>
+          <button
+            className="primary"
+            disabled={!picked && !custom.trim()}
+            onClick={add}
+            type="button"
+          >
+            {editing ? "儲存變更" : "加入購物清單"}
+          </button>
+        </section>
+      )}
+    </>
+  );
+}
