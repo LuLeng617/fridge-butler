@@ -286,6 +286,18 @@ button { cursor: pointer; }
 .confirm-card p { margin: 0; color: var(--muted); font-size: 12px; line-height: 1.6; }
 @media (max-width: 520px) { .mini-recipe-grid { grid-template-columns: 1fr; } .mini-recipe-grid button { grid-template-columns: auto 1fr auto; align-items: center; } }
 
+/* Recipe browsing: compact horizontal filters and real food imagery */
+.recipe-toolbar .flavor-grid { display: flex; grid-template-columns: none; flex-wrap: nowrap; overflow-x: auto; gap: 8px; padding: 2px 2px 8px; scrollbar-width: thin; }
+.recipe-toolbar .recipe-filter { flex: 0 0 auto; white-space: nowrap; }
+.recipe-emoji[data-flavor] { position: relative; background-size: cover; background-position: center; }
+.recipe-emoji[data-flavor]::after { content: ""; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(20,49,34,.02), rgba(20,49,34,.2)); }
+.recipe-emoji[data-flavor] .photo-emoji { position: relative; z-index: 1; display: grid; place-items: center; width: 52px; height: 52px; border-radius: 18px; background: rgba(255,255,255,.82); box-shadow: 0 4px 14px rgba(20,49,34,.14); }
+.recipe-emoji.large[data-flavor] .photo-emoji { width: 78px; height: 78px; font-size: 38px; }
+.recipe-emoji[data-flavor="台式家常"], .recipe-emoji[data-flavor="蔬菜料理"] { background-image: url("https://images.unsplash.com/photo-1547592180-85f173990554?auto=format&fit=crop&w=900&q=82"); }
+.recipe-emoji[data-flavor="西式輕食"], .recipe-emoji[data-flavor="早餐甜點"] { background-image: url("https://images.unsplash.com/photo-1482049016688-2d3e1b311543?auto=format&fit=crop&w=900&q=82"); }
+.recipe-emoji[data-flavor="麵食料理"], .recipe-emoji[data-flavor="清爽湯品"], .recipe-emoji[data-flavor="日式風味"], .recipe-emoji[data-flavor="肉類料理"], .recipe-emoji[data-flavor="清爽料理"] { background-image: url("https://images.unsplash.com/photo-1551183053-bf91a1d81141?auto=format&fit=crop&w=900&q=82"); }
+.external-recipe-link { display: block; text-align: center; text-decoration: none; }
+
 /* Unified visual system */
 :root { --ink: #263b32; --muted: #71867b; --paper: #f6f8f3; --mint: #dff1e7; --green: #3f8065; --line: #dfe9e1; --shadow: 0 14px 34px rgba(38,74,55,.08); }
 body { background: radial-gradient(circle at 15% 0%, #eef8f1 0, transparent 34%), var(--paper); color: var(--ink); }
